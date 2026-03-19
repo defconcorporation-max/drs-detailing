@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Models
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // In a real app, hashed. For MVP, simple text or hashed if we add auth lib
+  name      String?
+  role      String     @default("CLIENT") // ADMIN, EMPLOYEE, CLIENT
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Role specific relations
+  clientProfile ClientProfile?
+  employeeProfile EmployeeProfile?
+}
+
+model ClientProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+  
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  
+  loyaltyPoints Int @default(0)
+  referralCode  String @unique @default(uuid())
+  referredById  String?
+  accessKey     String? @unique @default(uuid()) // "Magic Link" token
+  referredBy    ClientProfile? @relation("Referrals", fields: [referredById], references: [id])
+  referrals     ClientProfile[] @relation("Referrals")
+
+  vehicles     Vehicle[]
+  jobs         Job[]
+}
+
+model EmployeeProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  hourlyRate    Float?
+  availabilities Availability[]
+  assignedJobs  Job[]
+  
+  // New Many-to-Many relation
+  teamJobs      Job[] @relation("JobTeam")
+}
+
+model Availability {
+  id String @id @default(uuid())
+  employeeId String
+  employee   EmployeeProfile @relation(fields: [employeeId], references: [id])
+  
+  dayOfWeek Int // 0=Sunday, 1=Monday...
+  date      DateTime? // Specific date for non-recurring
+  isLocked  Boolean @default(false)
+  startTime String // "09:00"
+  endTime   String // "17:00"
+}
+
+model Vehicle {
+  id        String      @id @default(uuid())
+  clientId  String
+  client    ClientProfile @relation(fields: [clientId], references: [id])
+  
+  type      String // SEDAN, SUV, PICKUP, TRUCK, OTHER
+  make      String
+  model     String
+  year      Int?
+  color     String?
+  licensePlate String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs      Job[]
+}
+
+model Service {
+  id          String @id @default(uuid())
+  name        String
+  description String?
+  basePrice   Float
+  durationMin Int    @default(60)
+  
+  // Can add pricing overrides per vehicle type later if needed
+  // For now we assume basePrice + logic in app
+  
+  jobs JobService[]
+}
+
+
+model Job {
+  id        String    @id @default(uuid())
+  clientId  String
+  client    ClientProfile @relation(fields: [clientId], references: [id])
+  
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  employeeId String?
+  employee   EmployeeProfile? @relation(fields: [employeeId], references: [id])
+
+  // New Many-to-Many relation for multi-assignment
+  employees EmployeeProfile[] @relation("JobTeam")
+
+  status    String @default("PENDING") // PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED
+  color     String? // Hex code for calendar
+  scheduledDate DateTime
+  
+  services  JobService[]
+  
+  totalPrice Float?
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // NEW RELATIONS
+  inspections Inspection[]
+  timeLogs    TimeLog[]
+}
+
+model JobService {
+  jobId     String
+  job       Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@id([jobId, serviceId])
+}
+
+model InventoryItem {
+  id        String   @id @default(uuid())
+  name      String
+  quantity  Float
+  unit      String   // "Liters", "Bottles"
+  minThreshold Float @default(10)
+  type      String   // "PRODUCT", "EQUIPMENT"
+  
+  updatedAt DateTime @updatedAt
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  date        DateTime @default(now())
+  category    String
+  amount      Float
+  description String?
+}
+
+// === NEW MODELS FOR V45 ===
+
+model Inspection {
+  id        String   @id @default(uuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  type      String   @default("CHECK_IN") // CHECK_IN, CHECK_OUT
+  notes     String?
+  points    InspectionPoint[]
+  photos    String? // JSON array of global photo URLs
+
+  createdAt DateTime @default(now())
+  createdBy String?  // Employee ID usually
+}
+
+model InspectionPoint {
+  id           String     @id @default(uuid())
+  inspectionId String
+  inspection   Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  
+  x            Float      // % from left
+  y            Float      // % from top
+  type         String     // "SCRATCH", "DENT", "CHIP", "OTHER"
+  severity     String?    // "LOW", "MEDIUM", "HIGH"
+  photoUrl     String?
+  notes        String?
+}
+
+model TimeLog {
+  id         String   @id @default(uuid())
+  jobId      String
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  employeeId String
+  // Relation to EmployeeProfile if possible, or just ID if loose coupling preferred.
+  // Let's allow loose coupling for now to avoid circular mess if employee deleted, but ideally should be related.
+  // Actually, better to relate it for reporting.
+  // We need to update EmployeeProfile to add relation 'timeLogs TimeLog[]' if we do this.
+  // For simplicity MVP, let's keep it loose or add relation below.
+  
+  startTime  DateTime @default(now())
+  endTime    DateTime? 
+  
+  durationMin Int?    // Calculated on completion
+}
