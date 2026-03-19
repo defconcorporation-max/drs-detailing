@@ -33,7 +33,7 @@ export function AdminSidebar() {
     const pathname = usePathname()
 
     return (
-        <div className="flex h-screen w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300">
+        <div className="hidden md:flex h-screen w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300">
             {/* Header / Logo */}
             <div className="p-6 border-b border-sidebar-border/50">
                 <Link href="/admin" className="flex items-center gap-2 group">
