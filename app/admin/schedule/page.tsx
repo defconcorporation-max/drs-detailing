@@ -150,29 +150,31 @@ function ScheduleGrid({ weekDays, jobs, selectors, availabilities }: any) {
     for (let i = startHour; i <= endHour; i++) hours.push(i)
 
     return (
-        <div className="min-w-[1000px] grid grid-cols-[60px_repeat(7,1fr)] bg-card rounded-xl border shadow-sm overflow-hidden">
-            {/* Header Row */}
-            <div className="sticky top-0 z-20 bg-muted/50 border-b p-2"></div>
-            {weekDays.map((day: Date, i: number) => {
-                const isToday = new Date().toDateString() === day.toDateString()
-                return (
-                    <div key={i} className={`sticky top-0 z-20 border-b border-l p-2 text-center font-medium backdrop-blur-sm ${isToday ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted/30'}`}>
-                        <div className="text-sm uppercase tracking-wide opacity-70">{day.toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
-                        <div className="text-xl">{day.getDate()}</div>
-                    </div>
-                )
-            })}
+        <div className="w-full overflow-x-auto">
+            {/* Inner grid keeps a minimum width; on phone we scroll horizontally */}
+            <div className="min-w-[1000px] grid grid-cols-[60px_repeat(7,1fr)] bg-card rounded-xl border shadow-sm overflow-hidden">
+                {/* Header Row */}
+                <div className="sticky top-0 z-20 bg-muted/50 border-b p-2"></div>
+                {weekDays.map((day: Date, i: number) => {
+                    const isToday = new Date().toDateString() === day.toDateString()
+                    return (
+                        <div key={i} className={`sticky top-0 z-20 border-b border-l p-2 text-center font-medium backdrop-blur-sm ${isToday ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted/30'}`}>
+                            <div className="text-sm uppercase tracking-wide opacity-70">{day.toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
+                            <div className="text-xl">{day.getDate()}</div>
+                        </div>
+                    )
+                })}
 
-            {/* Time Rows */}
-            {hours.map(hour => (
-                <div key={hour} className="contents">
-                    {/* Time Label */}
-                    <div className="border-b border-r text-xs text-muted-foreground p-1 text-right pr-2 sticky left-0 bg-background -mt-[1px]">
-                        {hour}:00
-                    </div>
+                {/* Time Rows */}
+                {hours.map(hour => (
+                    <div key={hour} className="contents">
+                        {/* Time Label */}
+                        <div className="border-b border-r text-xs text-muted-foreground p-1 text-right pr-2 sticky left-0 bg-background -mt-[1px]">
+                            {hour}:00
+                        </div>
 
-                    {/* Day Cells */}
-                    {weekDays.map((day: Date, dayIndex: number) => {
+                        {/* Day Cells */}
+                        {weekDays.map((day: Date, dayIndex: number) => {
                         const dayStr = day.toISOString().split('T')[0]
 
                         // 1. Find jobs STARTING in this hour (for rendering)
@@ -282,9 +284,10 @@ function ScheduleGrid({ weekDays, jobs, selectors, availabilities }: any) {
                                 )}
                             </div>
                         )
-                    })}
-                </div>
-            ))}
+                        })}
+                        </div>
+                    ))}
+            </div>
         </div>
     )
 }

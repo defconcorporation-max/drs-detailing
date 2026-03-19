@@ -41,7 +41,7 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
 
                         <div className="flex items-center gap-4">
                             {/* Loyalty Card - Gold Premium Look */}
-                            <div className="bg-gradient-to-br from-yellow-600 to-yellow-800 text-white rounded-xl p-4 shadow-lg border border-yellow-500/30 flex items-center gap-4 min-w-[200px]">
+                            <div className="bg-gradient-to-br from-yellow-600 to-yellow-800 text-white rounded-xl p-4 shadow-lg border border-yellow-500/30 flex items-center gap-4 min-w-[160px] sm:min-w-[200px]">
                                 <div className="p-3 bg-black/20 rounded-full backdrop-blur-sm">
                                     <Star size={24} className="fill-yellow-200 text-yellow-200" />
                                 </div>

@@ -49,7 +49,7 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
     const today = () => setCurrentDate(new Date())
 
     return (
-        <div className="flex flex-col h-[800px] border rounded-xl bg-background shadow-sm overflow-hidden">
+        <div className="flex flex-col h-[calc(100vh-200px)] sm:h-[800px] border rounded-xl bg-background shadow-sm overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center gap-4">
@@ -79,7 +79,8 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                 </div>
 
                 {/* Days Columns */}
-                <div className="flex flex-1 min-w-[800px]">
+                {/* On small screens, allow horizontal scroll instead of forcing the whole layout to be very wide */}
+                <div className="flex flex-1 min-w-[650px] sm:min-w-[800px]">
                     {weekDays.map((day, i) => {
                         const isToday = isSameDay(day, new Date())
 
@@ -101,7 +102,7 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                         // console.log(`Day ${day.toDateString()}: ${dayJobs.length} jobs`)
 
                         return (
-                            <div key={i} className={cn("flex-1 border-r min-w-[120px] flex flex-col", isToday && "bg-primary/5")}>
+                            <div key={i} className={cn("flex-1 border-r min-w-[90px] sm:min-w-[120px] flex flex-col", isToday && "bg-primary/5")}>
                                 {/* Day Header */}
                                 <div className="h-10 border-b flex items-center justify-center font-medium text-sm capitalize bg-background sticky top-0 z-10">
                                     <span className={cn(isToday && "text-primary font-bold")}>
