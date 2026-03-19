@@ -118,7 +118,6 @@ export async function addVehicle(clientId: string, data: FormData) {
                 type: type || 'SEDAN',
                 year: year || new Date().getFullYear(),
                 color,
-                photoUrl: data.get('photoUrl') as string,
                 licensePlate: plate
             }
         })

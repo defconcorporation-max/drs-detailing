@@ -25,7 +25,11 @@ export default function NewEmployeePage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form action={createEmployee} className="space-y-4">
+                    <form action={async (formData: FormData) => {
+                        "use server"
+                        // Next expects `form action` to return void.
+                        await createEmployee(formData)
+                    }} className="space-y-4">
                         <div className="grid gap-2">
                             <Label>Nom Complet</Label>
                             <Input name="name" required placeholder="Ex: Marc Tech" />

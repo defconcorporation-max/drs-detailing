@@ -11,7 +11,8 @@ export default async function JobDetailsPage({ params }: { params: Promise<{ id:
     const job = await prisma.job.findUnique({
         where: { id },
         include: {
-            client: { include: { user: true, clientProfile: true } },
+            // `job.client` est déjà un `ClientProfile` (pas besoin de `clientProfile` dans l'include)
+            client: { include: { user: true } },
             vehicle: true,
             services: { include: { service: true } }
         }
@@ -38,10 +39,10 @@ export default async function JobDetailsPage({ params }: { params: Promise<{ id:
                         <div className="font-semibold text-lg">{job.client.user.name}</div>
                         <div className="text-muted-foreground">{job.client.user.email}</div>
                         <div className="text-muted-foreground">{job.client.user.phone}</div>
-                        {job.client.clientProfile?.address && (
+                        {job.client.address && (
                             <div className="flex items-start gap-2 pt-2 text-sm">
                                 <MapPin size={16} className="mt-1" />
-                                <span>{job.client.clientProfile.address}</span>
+                                <span>{job.client.address}</span>
                             </div>
                         )}
                     </CardContent>

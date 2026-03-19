@@ -177,7 +177,11 @@ export default async function AdminAvailabilityPage() {
                                                             </DialogContent>
                                                         </Dialog>
 
-                                                        <form action={unlockWeek.bind(null, emp.id, weekStartStr)}>
+                                                        <form action={async (_formData: FormData) => {
+                                                            "use server"
+                                                            // Next expects server actions used in `form action` to return void.
+                                                            await unlockWeek(emp.id, weekStartStr)
+                                                        }}>
                                                             <button className="text-xs text-red-500 hover:underline px-1 opacity-50 hover:opacity-100" title={`Déverrouiller pour ${emp.user.name}`}>
                                                                 (Déverrouiller)
                                                             </button>

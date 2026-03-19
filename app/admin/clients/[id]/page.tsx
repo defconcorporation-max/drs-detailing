@@ -32,6 +32,7 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
     const client = await getClientById(id)
 
     if (!client) return <div>Client introuvable</div>
+    const jobs = client.clientProfile?.jobs ?? []
 
     return (
         <div className="space-y-6">
@@ -95,8 +96,8 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-sm">
-                                    {client.clientProfile?.jobs.length > 0
-                                        ? new Date(client.clientProfile.jobs[client.clientProfile.jobs.length - 1].scheduledDate).toLocaleDateString()
+                                    {jobs.length > 0
+                                        ? new Date(jobs[jobs.length - 1].scheduledDate).toLocaleDateString()
                                         : "N/A"}
                                 </div>
                             </CardContent>
@@ -217,11 +218,11 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                             }} className="space-y-4 max-w-xl">
                                 <div className="space-y-2">
                                     <Label>Nom Complet</Label>
-                                    <Input name="name" defaultValue={client.name} />
+                                    <Input name="name" defaultValue={client.name ?? ""} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Email</Label>
-                                    <Input name="email" defaultValue={client.email} />
+                                    <Input name="email" defaultValue={client.email ?? ""} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Téléphone</Label>

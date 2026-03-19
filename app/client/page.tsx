@@ -53,7 +53,7 @@ export default async function ClientDashboard() {
                                 </div>
                                 <Badge>{nextJob.status}</Badge>
                                 <p className="text-xs pt-2">
-                                    {nextJob.vehicle.make} {nextJob.vehicle.model}
+                                    {nextJob.vehicle?.make ?? "-"} {nextJob.vehicle?.model ?? ""}
                                 </p>
                             </div>
                         ) : (
