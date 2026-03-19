@@ -1,6 +1,7 @@
 
 import { getDashboardStats } from "@/lib/actions/dashboard"
 import { getPendingRequests } from "@/lib/actions/client-booking"
+import { runReminderDispatch } from "@/lib/actions/notifications"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Users, Calendar, DollarSign, AlertTriangle, Briefcase, Car, CheckCircle, Clock } from "lucide-react"
 import Link from "next/link"
@@ -86,6 +87,31 @@ export default async function AdminDashboard() {
                     </Card>
                 </Link>
             )}
+
+            {/* Reminders Quick Action */}
+            <Card className="border-blue-200 bg-blue-50/40 dark:bg-blue-950/20">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        Rappels clients (J-1 / H-2)
+                    </CardTitle>
+                    <CardDescription>
+                        Déclenche manuellement l&apos;envoi des rappels en attente (version simulation).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form
+                        action={async () => {
+                            "use server"
+                            await runReminderDispatch()
+                        }}
+                    >
+                        <Button type="submit" variant="outline">
+                            Lancer les rappels maintenant
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
 
             {/* Stats Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
