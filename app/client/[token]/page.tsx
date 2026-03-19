@@ -1,5 +1,10 @@
 
-import { getClientByToken } from "@/lib/actions/client-portal"
+import {
+    cancelClientJob,
+    confirmClientJob,
+    getClientByToken,
+    requestRescheduleClientJob,
+} from "@/lib/actions/client-portal"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Car, Star, Clock, Info } from "lucide-react"
@@ -7,6 +12,7 @@ import { ClientBookingWizard } from "@/components/client/ClientBookingWizard"
 import { getServices } from "@/lib/actions/services"
 import { VehicleManager } from "@/components/client/VehicleManager"
 import { ClientJobDetailsDialog } from "@/components/client/ClientJobDetailsDialog"
+import { Button } from "@/components/ui/button"
 
 export default async function ClientPortalPage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = await params
@@ -121,6 +127,47 @@ export default async function ClientPortalPage({ params }: { params: Promise<{ t
                                                         </Badge>
                                                     ))}
                                                 </div>
+                                            </div>
+
+                                            <div className="space-y-2 pt-2">
+                                                <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
+                                                    Gérer ce rendez-vous
+                                                </p>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                    <form
+                                                        action={async () => {
+                                                            "use server"
+                                                            await confirmClientJob(token, nextJob.id)
+                                                        }}
+                                                    >
+                                                        <Button type="submit" className="w-full" variant="default">
+                                                            Confirmer
+                                                        </Button>
+                                                    </form>
+                                                    <form
+                                                        action={async () => {
+                                                            "use server"
+                                                            await requestRescheduleClientJob(token, nextJob.id)
+                                                        }}
+                                                    >
+                                                        <Button type="submit" className="w-full" variant="outline">
+                                                            Replanifier
+                                                        </Button>
+                                                    </form>
+                                                    <form
+                                                        action={async () => {
+                                                            "use server"
+                                                            await cancelClientJob(token, nextJob.id)
+                                                        }}
+                                                    >
+                                                        <Button type="submit" className="w-full" variant="destructive">
+                                                            Annuler
+                                                        </Button>
+                                                    </form>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Les actions sont envoyées instantanément à l&apos;équipe admin.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
