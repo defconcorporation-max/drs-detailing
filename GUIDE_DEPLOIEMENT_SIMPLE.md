@@ -39,7 +39,7 @@ Sur Windows, une variable d’environnement **système ou utilisateur** nommée 
 1. Touche **Windows**, tape **variables d’environnement** → **Modifier les variables d’environnement pour votre compte** (ou système).
 2. Dans **Variables utilisateur** (et éventuellement **Variables système**), cherche **`DATABASE_URL`**.
 3. Si elle existe avec une URL en `:5432`, **supprime-la** ou remplace-la par la même URL que dans ton `.env` (mode Transaction **:6543** + `pgbouncer=true`).
-4. **Ferme et rouvre** le terminal (cmd ou PowerShell), puis refais `npx prisma db push`.
+f551e3e6-3411-4440-b2c5-33f636f873464. **Ferme et rouvre** le terminal (cmd ou PowerShell), puis refais `npx prisma db push`.
 
 Pour vérifier dans **cmd** avant Prisma :
 
@@ -177,6 +177,19 @@ Attends la fin du build. À la fin, Vercel t’affiche l’URL de ton site (ex. 
 2. Modifie **NEXT_PUBLIC_APP_URL** : mets l’URL exacte de ton site (celle affichée après le deploy).
 3. Va dans **Deployments** → sur le dernier déploiement, clique sur les **...** → **Redeploy** (pour que la nouvelle variable soit prise en compte).
 
+### Emails de rappel (Resend)
+
+Les rappels J-1 / H-2 envoient un **email** si tu configures **Resend** :
+
+1. Compte sur [resend.com](https://resend.com) → **API Keys** → crée une clé.
+2. **Domains** : ajoute ton domaine (ou utilise `onboarding@resend.dev` en test, limité).
+3. Dans Vercel → **Environment Variables** :
+   - `RESEND_API_KEY` = ta clé
+   - `RESEND_FROM_EMAIL` = ex. `DRS Detailing <noreply@tondomaine.com>` (doit être autorisé chez Resend)
+4. Sans ces variables, les rappels restent en **simulation** (log serveur uniquement).
+
+Pour lancer les rappels automatiquement : variable `CRON_SECRET` + appel planifié `POST /api/reminders/run` avec l’en-tête `Authorization: Bearer <CRON_SECRET>` (ex. **Vercel Cron**).
+
 ---
 
 ## Récap
@@ -186,6 +199,6 @@ Attends la fin du build. À la fin, Vercel t’affiche l’URL de ton site (ex. 
 | 1 | Supabase | Récupérer l’URL (Project Settings → Database → Connection string URI) et la mettre dans `.env` avec le bon mot de passe. |
 | 2 | CMD sur ton PC | `npx prisma db push` (et optionnellement `npx tsx run_seed.ts`). |
 | 3 | GitHub | Créer un dépôt, puis `git init` → `git add .` → `git commit` → `git remote add origin` → `git push`. |
-| 4 | Vercel | Import du dépôt GitHub, ajout de `DATABASE_URL` et `NEXT_PUBLIC_APP_URL`, puis Deploy. |
+| 4 | Vercel | Import du dépôt GitHub, ajout de `DATABASE_URL`, `NEXT_PUBLIC_APP_URL`, optionnel `RESEND_*` + `CRON_SECRET`, puis Deploy. |
 
 Une fois tout ça fait, ton app est en ligne sur l’URL Vercel. Tu peux t’y connecter en admin (mot de passe défini dans le seed, souvent `admin` pour le MVP).

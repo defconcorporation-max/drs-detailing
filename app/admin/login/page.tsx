@@ -5,8 +5,10 @@ import { loginAdmin } from "@/lib/actions/auth"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Lock, Loader2 } from "lucide-react"
+import { BrandMark } from "@/components/brand/BrandMark"
+import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function AdminLoginPage() {
     const [error, setError] = useState("")
@@ -30,14 +32,16 @@ export default function AdminLoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-100 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit mb-2">
-                        <Lock className="text-primary w-6 h-6" />
+        <div className="marketing-backdrop flex min-h-screen items-center justify-center p-4">
+            <Card className="glass-panel w-full max-w-md border-border/60">
+                <CardHeader className="space-y-4 text-center">
+                    <div className="mx-auto flex justify-center">
+                        <BrandMark />
                     </div>
-                    <CardTitle className="text-2xl">Administration DRS</CardTitle>
-                    <CardDescription>Veuillez entrer le mot de passe administrateur</CardDescription>
+                    <div>
+                        <CardTitle className="font-display text-2xl font-bold tracking-wide uppercase">Pit lane</CardTitle>
+                        <CardDescription className="text-base">Accès administration — mot de passe requis</CardDescription>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form action={handleSubmit} className="space-y-4">
@@ -46,13 +50,22 @@ export default function AdminLoginPage() {
                             type="password"
                             placeholder="Mot de passe"
                             required
-                            className="text-center text-lg"
+                            className="h-11 rounded-xl border-border/60 text-center text-base"
                         />
-                        {error && <div className="text-red-500 text-sm text-center font-medium">{error}</div>}
-                        <Button type="submit" className="w-full text-lg h-12" disabled={loading}>
-                            {loading ? <Loader2 className="animate-spin" /> : "Connexion"}
+                        {error && (
+                            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-center text-sm font-medium text-destructive">
+                                {error}
+                            </div>
+                        )}
+                        <Button type="submit" className="h-11 w-full rounded-xl text-base" disabled={loading}>
+                            {loading ? <Loader2 className="size-5 animate-spin" /> : "Connexion"}
                         </Button>
                     </form>
+                    <p className="mt-6 text-center text-sm text-muted-foreground">
+                        <Link href="/" className="font-medium text-primary underline-offset-4 hover:underline">
+                            ← Retour à l&apos;accueil
+                        </Link>
+                    </p>
                 </CardContent>
             </Card>
         </div>

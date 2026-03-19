@@ -12,6 +12,7 @@ export async function getClientDashboardData() {
         include: {
             clientProfile: {
                 include: {
+                    user: true,
                     vehicles: true,
                     jobs: {
                         include: {

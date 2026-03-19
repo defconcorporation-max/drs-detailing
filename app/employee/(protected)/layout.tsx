@@ -1,5 +1,6 @@
 import { EmployeeSidebar } from "@/components/employee/Sidebar"
 import { MobileEmployeeNav } from "@/components/employee/MobileNav"
+import { AppChromeBar } from "@/components/showroom/AppChromeBar"
 import { cookies } from "next/headers"
 import prisma from "@/lib/db"
 import { redirect } from "next/navigation"
@@ -26,7 +27,8 @@ export default async function EmployeeLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground animate-in fade-in transition-colors overflow-hidden">
+        <div className="flex min-h-screen animate-in fade-in overflow-hidden bg-background text-foreground transition-colors">
+            <AppChromeBar />
             <EmployeeSidebar user={user} />
             <div className="flex-1 min-w-0 flex flex-col">
                 <div className="md:hidden p-3 border-b border-sidebar-border/50 bg-background">

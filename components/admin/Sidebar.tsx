@@ -14,8 +14,9 @@ import {
     Car,
     LogOut,
     Clock,
-    Shield
+    Shield,
 } from "lucide-react"
+import { BrandMark } from "@/components/brand/BrandMark"
 
 const sidebarItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -35,14 +36,16 @@ export function AdminSidebar() {
     return (
         <div className="hidden md:flex h-screen w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300">
             {/* Header / Logo */}
-            <div className="p-6 border-b border-sidebar-border/50">
-                <Link href="/admin" className="flex items-center gap-2 group">
-                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
-                        D
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="font-bold text-lg tracking-tight leading-none">DRS Detailing</span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">Administration</span>
+            <div className="border-b border-sidebar-border/50 p-6">
+                <Link href="/admin" className="group flex items-center gap-3">
+                    <BrandMark compact className="group-hover:scale-105 transition-transform" />
+                    <div className="flex min-w-0 flex-col">
+                        <span className="font-display truncate text-lg leading-none font-bold tracking-wide uppercase">
+                            DRS Detailing
+                        </span>
+                        <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            Administration
+                        </span>
                     </div>
                 </Link>
             </div>
@@ -55,12 +58,14 @@ export function AdminSidebar() {
 
                     return (
                         <Link key={item.href} href={item.href} className="block">
-                            <div className={cn(
-                                "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all duration-200 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                                isActive
-                                    ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border"
-                                    : "text-muted-foreground"
-                            )}>
+                            <div
+                                className={cn(
+                                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium outline-none transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                                    isActive
+                                        ? "border-l-2 border-primary bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-primary/15"
+                                        : "border-l-2 border-transparent text-muted-foreground"
+                                )}
+                            >
                                 <Icon
                                     size={18}
                                     className={cn(
@@ -69,9 +74,7 @@ export function AdminSidebar() {
                                     )}
                                 />
                                 <span>{item.label}</span>
-                                {isActive && (
-                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shadow shadow-primary/50" />
-                                )}
+                                {isActive && <div className="ml-auto size-1.5 rounded-full bg-primary opacity-90" />}
                             </div>
                         </Link>
                     )

@@ -21,17 +21,27 @@ export default async function AdminDashboard() {
     ]
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Tableau de Bord</h2>
-                <div className="text-sm text-muted-foreground">
-                    {new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <div className="space-y-8">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h1 className="font-display text-3xl font-bold tracking-tight uppercase md:text-4xl">
+                        Tableau de <span className="text-gradient-brand">bord</span>
+                    </h1>
+                    <p className="mt-1 text-muted-foreground">Vue d&apos;ensemble de l&apos;activité</p>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-card/50 px-4 py-2 text-sm text-muted-foreground backdrop-blur-sm">
+                    {new Date().toLocaleDateString("fr-FR", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                    })}
                 </div>
             </div>
 
             {/* Pending Requests Section */}
             {pendingRequests.length > 0 && (
-                <Card className="border-primary/20 bg-primary/5 mb-6 shadow-sm">
+                <Card className="mb-6 border-primary/25 bg-primary/5 shadow-md dark:bg-primary/10">
                     <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center gap-2 text-primary">
                             <Briefcase className="h-5 w-5" />
@@ -44,7 +54,10 @@ export default async function AdminDashboard() {
                     <CardContent>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {pendingRequests.map((job) => (
-                                <div key={job.id} className="bg-card p-4 rounded-lg border shadow-sm flex flex-col justify-between gap-4">
+                                <div
+                                    key={job.id}
+                                    className="flex flex-col justify-between gap-4 rounded-2xl border border-border/60 bg-card/80 p-4 shadow-sm backdrop-blur-sm"
+                                >
                                     <div>
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="font-bold text-lg">{job.client.user.name}</div>
@@ -89,14 +102,16 @@ export default async function AdminDashboard() {
             )}
 
             {/* Reminders Quick Action */}
-            <Card className="border-blue-200 bg-blue-50/40 dark:bg-blue-950/20">
+            <Card className="border-cyan-500/25 bg-gradient-to-br from-cyan-500/10 via-transparent to-primary/5 dark:from-cyan-500/15">
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-blue-500" />
+                    <CardTitle className="flex items-center gap-2 text-base">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
+                            <Clock className="h-4 w-4" />
+                        </span>
                         Rappels clients (J-1 / H-2)
                     </CardTitle>
                     <CardDescription>
-                        Déclenche manuellement l&apos;envoi des rappels en attente (version simulation).
+                        Envoie les emails (Resend) ou simulation si les clés ne sont pas configurées.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -106,7 +121,7 @@ export default async function AdminDashboard() {
                             await runReminderDispatch()
                         }}
                     >
-                        <Button type="submit" variant="outline">
+                        <Button type="submit" variant="outline" className="rounded-xl">
                             Lancer les rappels maintenant
                         </Button>
                     </form>
@@ -143,7 +158,7 @@ export default async function AdminDashboard() {
                             {stats.recentActivity.map((job: any) => (
                                 <div key={job.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
                                     <div className="flex items-start gap-3">
-                                        <div className="bg-primary/10 p-2 rounded-full">
+                                        <div className="rounded-xl bg-primary/10 p-2.5">
                                             <Car size={16} className="text-primary" />
                                         </div>
                                         <div>
@@ -182,9 +197,12 @@ export default async function AdminDashboard() {
                                 const isToday = new Date().toDateString() === day.toDateString()
 
                                 return (
-                                    <div key={offset} className={`flex items-center justify-between p-2 rounded-md ${isToday ? 'bg-secondary' : ''}`}>
+                                    <div
+                                        key={offset}
+                                        className={`flex items-center justify-between rounded-xl p-2.5 ${isToday ? "bg-primary/10 ring-1 ring-primary/20" : ""}`}
+                                    >
                                         <div className="flex items-center gap-2">
-                                            <div className={`w-2 h-2 rounded-full ${isToday ? 'bg-primary' : 'bg-muted'}`}></div>
+                                            <div className={`size-2 rounded-full ${isToday ? "bg-primary shadow-[0_0_8px] shadow-primary/60" : "bg-muted"}`} />
                                             <span className="text-sm font-medium capitalize">
                                                 {day.toLocaleDateString('fr-FR', { weekday: 'short' })}
                                             </span>
@@ -197,8 +215,10 @@ export default async function AdminDashboard() {
                                 )
                             })}
                         </div>
-                        <Link href="/admin/schedule" className="block mt-4">
-                            <Button variant="outline" className="w-full text-xs">Voir Planning Complet</Button>
+                        <Link href="/admin/schedule" className="mt-4 block">
+                            <Button variant="outline" className="w-full rounded-xl text-xs">
+                                Voir planning complet
+                            </Button>
                         </Link>
                     </CardContent>
                 </Card>

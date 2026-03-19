@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { User, Loader2 } from "lucide-react"
+import { BrandMark } from "@/components/brand/BrandMark"
+import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function EmployeeLoginPage() {
     const [error, setError] = useState("")
@@ -31,30 +33,48 @@ export default function EmployeeLoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-neutral-100 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <div className="mx-auto bg-blue-500/10 p-3 rounded-full w-fit mb-2">
-                        <User className="text-blue-500 w-6 h-6" />
+        <div className="marketing-backdrop flex min-h-screen items-center justify-center p-4">
+            <Card className="glass-panel w-full max-w-md border-border/60">
+                <CardHeader className="space-y-4 text-center">
+                    <div className="mx-auto flex justify-center">
+                        <BrandMark />
                     </div>
-                    <CardTitle className="text-2xl">Espace Employé</CardTitle>
-                    <CardDescription>Connectez-vous pour voir votre planning</CardDescription>
+                    <div>
+                        <CardTitle className="font-display text-2xl font-bold tracking-wide uppercase">Baie technique</CardTitle>
+                        <CardDescription className="text-base">Identifiants équipe — planning &amp; jobs</CardDescription>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form action={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Email</Label>
-                            <Input name="email" type="email" placeholder="nom@drs.com" required />
+                            <Label htmlFor="email-emp">Email</Label>
+                            <Input
+                                id="email-emp"
+                                name="email"
+                                type="email"
+                                placeholder="nom@drs.com"
+                                required
+                                className="h-11 rounded-xl border-border/60"
+                            />
                         </div>
                         <div className="space-y-2">
-                            <Label>Mot de passe</Label>
-                            <Input name="password" type="password" required />
+                            <Label htmlFor="pw-emp">Mot de passe</Label>
+                            <Input id="pw-emp" name="password" type="password" required className="h-11 rounded-xl border-border/60" />
                         </div>
-                        {error && <div className="text-red-500 text-sm text-center font-medium">{error}</div>}
-                        <Button type="submit" className="w-full h-12 text-lg" disabled={loading}>
-                            {loading ? <Loader2 className="animate-spin" /> : "Accéder au Planning"}
+                        {error && (
+                            <div className="rounded-lg bg-destructive/10 px-3 py-2 text-center text-sm font-medium text-destructive">
+                                {error}
+                            </div>
+                        )}
+                        <Button type="submit" className="h-11 w-full rounded-xl text-base" disabled={loading}>
+                            {loading ? <Loader2 className="size-5 animate-spin" /> : "Accéder au planning"}
                         </Button>
                     </form>
+                    <p className="mt-6 text-center text-sm text-muted-foreground">
+                        <Link href="/" className="font-medium text-primary underline-offset-4 hover:underline">
+                            ← Retour à l&apos;accueil
+                        </Link>
+                    </p>
                 </CardContent>
             </Card>
         </div>

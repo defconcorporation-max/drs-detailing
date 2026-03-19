@@ -1,6 +1,7 @@
 "use server"
 
 import prisma from "@/lib/db"
+import { sendClientReminderEmail } from "@/lib/email/send-client-reminder"
 
 const TAG_J1 = "[REMINDER_J1_SENT]"
 const TAG_H2 = "[REMINDER_H2_SENT]"
@@ -18,11 +19,26 @@ function appendReminderTag(notes: string | null | undefined, tag: string) {
     return `${current}\n${tag}`
 }
 
-export async function sendSmsReminder(jobId: string, type: ReminderType) {
-    // Placeholder dispatcher (Twilio/WhatsApp later).
-    console.log(`[Reminder:${type}] Sending reminder for Job ${jobId}...`)
-    await new Promise((resolve) => setTimeout(resolve, 200))
-    return { success: true, message: `Rappel ${type} envoyé (simulation)` }
+/** Rappel client : email via Resend si configuré, sinon simulation (console). */
+export async function sendReminderNotification(
+    job: {
+        id: string
+        scheduledDate: Date
+        client: {
+            accessKey: string | null
+            user: { email: string | null; name: string | null }
+        }
+    },
+    type: ReminderType
+) {
+    const result = await sendClientReminderEmail(job, type)
+    if (!result.ok) {
+        throw new Error(result.error)
+    }
+    return {
+        success: true,
+        message: result.simulated ? `Rappel ${type} (simulation — pas de Resend)` : `Rappel ${type} envoyé par email`,
+    }
 }
 
 export async function runReminderDispatch() {
@@ -56,11 +72,11 @@ export async function runReminderDispatch() {
 
         try {
             if (shouldSendJ1) {
-                await sendSmsReminder(job.id, "J1")
+                await sendReminderNotification(job, "J1")
                 sentJ1 += 1
             }
             if (shouldSendH2) {
-                await sendSmsReminder(job.id, "H2")
+                await sendReminderNotification(job, "H2")
                 sentH2 += 1
             }
 

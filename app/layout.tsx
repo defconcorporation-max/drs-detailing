@@ -1,42 +1,50 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Oswald, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const oswald = Oswald({
+    variable: "--font-oswald",
+    subsets: ["latin", "latin-ext"],
+    weight: ["400", "500", "600", "700"],
+    display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const dmSans = DM_Sans({
+    variable: "--font-dm-sans",
+    subsets: ["latin", "latin-ext"],
+    display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+    variable: "--font-mono",
+    subsets: ["latin"],
+    display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "DRS Detailing Software",
-  description: "Premium software for detailing business",
+    title: "DRS Detailing — Showroom",
+    description: "L’atelier numérique : rendez-vous, équipe et finition miroir.",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="fr" suppressHydrationWarning>
+            <body
+                className={`${oswald.variable} ${dmSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}
+            >
+                <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+                    <div id="showroom-root" className="bg-background text-foreground">
+                        {children}
+                        <Toaster richColors position="top-center" closeButton theme="system" />
+                    </div>
+                </ThemeProvider>
+            </body>
+        </html>
+    );
 }
