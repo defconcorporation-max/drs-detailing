@@ -49,7 +49,7 @@ export function ClientBookingWizard({ clientName, token, vehicles = [], services
     // Details State
     const [selectedSlot, setSelectedSlot] = React.useState<{ date: string, time: string } | null>(null)
     const [selectedVehicle, setSelectedVehicle] = React.useState<string>(vehicles.length > 0 ? vehicles[0].id : "")
-    const [selectedService, setSelectedService] = React.useState<string>("")
+    const [selectedService, setSelectedService] = React.useState<string>(services?.[0]?.id || "")
     const [notes, setNotes] = React.useState("")
 
     // Submission State
@@ -64,13 +64,13 @@ export function ClientBookingWizard({ clientName, token, vehicles = [], services
             // Fetch for the whole month displayed (plus a bit buffer)
             const dateStr = currentMonth.toISOString().split('T')[0]
             // Fetch 35 days from start of month to cover grid
-            getPublicAvailability(dateStr, 40)
+            getPublicAvailability(dateStr, 40, selectedService || undefined)
                 .then(data => {
                     setAvailabilities(data)
                     setLoadingSlots(false)
                 })
         }
-    }, [isOpen, step, success, currentMonth])
+    }, [isOpen, step, success, currentMonth, selectedService])
 
     const handleSlotClick = (dateStr: string, time: string) => {
         setSelectedSlot({ date: dateStr, time })
@@ -192,7 +192,7 @@ export function ClientBookingWizard({ clientName, token, vehicles = [], services
 
                                     {/* Slots Column */}
                                     <div className="flex-1 p-6 overflow-y-auto bg-card min-h-[300px]">
-                                        <div className="flex items-center justify-between mb-6">
+                                        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-3">
                                             <h3 className="font-bold flex items-center gap-2 text-lg">
                                                 <Clock size={20} className="text-primary" />
                                                 {date ? (
@@ -201,11 +201,25 @@ export function ClientBookingWizard({ clientName, token, vehicles = [], services
                                                     "Choisir une date"
                                                 )}
                                             </h3>
-                                            {date && dayData && (
-                                                <Badge variant="outline" className="text-xs font-normal">
-                                                    {dayData.slots.filter(s => s.available).length} créneaux
-                                                </Badge>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {date && dayData && (
+                                                    <Badge variant="outline" className="text-xs font-normal">
+                                                        {dayData.slots.filter(s => s.available).length} créneaux
+                                                    </Badge>
+                                                )}
+                                                <Select value={selectedService} onValueChange={setSelectedService}>
+                                                    <SelectTrigger className="h-9 w-full md:w-[260px] bg-background">
+                                                        <SelectValue placeholder="Service pour calcul des créneaux" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {services.map((s) => (
+                                                            <SelectItem key={s.id} value={s.id}>
+                                                                {s.name} ({s.durationMin} min)
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         </div>
 
                                         {loadingSlots ? (
@@ -217,6 +231,11 @@ export function ClientBookingWizard({ clientName, token, vehicles = [], services
                                             <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-50">
                                                 <CalendarIcon size={48} className="text-muted-foreground" />
                                                 <div>Sélectionnez une date sur le calendrier.</div>
+                                            </div>
+                                        ) : !selectedService ? (
+                                            <div className="flex flex-col items-center justify-center py-10 bg-muted rounded-xl border">
+                                                <div className="font-semibold">Sélectionne d'abord un service</div>
+                                                <div className="text-sm opacity-80">On calcule les créneaux selon sa durée.</div>
                                             </div>
                                         ) : !dayData || dayData.slots.filter(s => s.available).length === 0 ? (
                                             <div className="flex flex-col items-center justify-center py-10 bg-destructive/10 rounded-xl border border-destructive/20 text-destructive">
