@@ -192,6 +192,34 @@ Pour lancer les rappels automatiquement : variable `CRON_SECRET` + appel planifi
 
 ---
 
+## Erreur sur Vercel : « Application error » / Digest (après un `git push`)
+
+Le **build** peut être vert alors que le **site plante** : la base Postgres (Supabase) n’a pas les **nouvelles tables ou colonnes** du fichier `prisma/schema.prisma`.
+
+### Solution rapide (recommandée)
+
+1. Dans Vercel → **Settings** → **Environment Variables** : copie la valeur de **`DATABASE_URL`** (celle utilisée en **Production**).
+2. Sur ton PC, dans le dossier du projet, crée ou édite `.env` et mets cette URL dans `DATABASE_URL` (ou en PowerShell une seule ligne pour la commande) :
+   ```powershell
+   cd /d "f:\Entreprises\DRS\detailing software"
+   npx prisma db push
+   ```
+   (Si tu utilises une URL temporaire : `$env:DATABASE_URL="postgresql://..."` puis `npx prisma db push`.)
+
+3. Recharge le site Vercel.
+
+### Variables d’environnement Vercel
+
+- **`DATABASE_URL`** doit exister pour **Production** et souvent aussi pour **Preview** (sinon les URLs du type `…-git-main-….vercel.app` cassent).
+- Même valeur Supabase pour les deux, en général.
+
+### Sans CLI : SQL sur Supabase
+
+1. Ouvre **Supabase** → **SQL Editor**.
+2. Colle le contenu du fichier **`prisma/PROD_SYNC.sql`** du dépôt → **Run**.
+
+---
+
 ## Récap
 
 | Étape | Où | Quoi faire |
