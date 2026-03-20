@@ -96,11 +96,22 @@ model Service {
   description String?
   basePrice   Float
   durationMin Int    @default(60)
-  
-  // Can add pricing overrides per vehicle type later if needed
-  // For now we assume basePrice + logic in app
-  
-  jobs JobService[]
+
+  extras ServiceExtra[]
+  jobs   JobService[]
+}
+
+/// Options par service (VUS, pickup, dégâts majeurs, etc.) — supplément prix / durée
+model ServiceExtra {
+  id               String  @id @default(uuid())
+  serviceId        String
+  service          Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  label            String
+  priceExtra       Float   @default(0)
+  durationExtraMin Int     @default(0)
+  sortOrder        Int     @default(0)
+
+  @@index([serviceId])
 }
 
 
@@ -140,6 +151,9 @@ model JobService {
   job       Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id])
+
+  /// IDs des ServiceExtra choisis pour cette ligne (JSON array de strings)
+  selectedExtraIds Json?
 
   @@id([jobId, serviceId])
 }

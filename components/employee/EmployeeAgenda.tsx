@@ -7,6 +7,8 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock } fr
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { jobDurationMinutes } from "@/lib/job-metrics"
+import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
 import {
     Dialog,
     DialogContent,
@@ -147,8 +149,9 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                         const startOffsetMin = (START_HOUR * 60)
                                         const topPct = ((startMinutes - startOffsetMin) / TOTAL_MINUTES) * 100
 
-                                        const duration = job.services?.reduce((acc: number, s: any) => acc + (s.service.durationMin || 60), 0) || 60
+                                        const duration = jobDurationMinutes(job.services || [])
                                         const heightPct = (duration / TOTAL_MINUTES) * 100
+                                        const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
 
                                         // Recalculate End Time String for Display
                                         const endTotalMin = startMinutes + duration
@@ -160,10 +163,10 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                             <Dialog key={job.id}>
                                                 <DialogTrigger asChild>
                                                     <div
-                                                        className="absolute w-[95%] left-[2.5%] bg-primary text-primary-foreground text-xs rounded-md shadow-md p-1.5 cursor-pointer hover:scale-[1.02] transition-transform z-10 overflow-hidden border border-primary-foreground/10"
+                                                        className={`absolute left-[2.5%] w-[95%] rounded-lg border p-1.5 text-xs shadow-md transition-transform hover:scale-[1.02] z-10 cursor-pointer overflow-hidden ${box} ${text} ${opacity ?? ""}`}
                                                         style={{
                                                             top: `${topPct}%`,
-                                                            height: `${heightPct}%`
+                                                            height: `${heightPct}%`,
                                                         }}
                                                     >
                                                         <div className="font-bold truncate">{job.client.user.name}</div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/actions/clients"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +19,7 @@ import { Plus, UserPlus, Loader2 } from "lucide-react"
 export function QuickClientDialog() {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const router = useRouter()
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -28,7 +30,7 @@ export function QuickClientDialog() {
             alert(res.error)
         } else {
             setOpen(false)
-            // Ideally notify success
+            router.refresh()
         }
     }
 

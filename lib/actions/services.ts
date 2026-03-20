@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache"
 
 export async function getServices() {
     const services = await prisma.service.findMany({
-        orderBy: { name: 'asc' }
+        orderBy: { name: "asc" },
+        include: { extras: { orderBy: { sortOrder: "asc" } } },
     })
     return serialize(services)
 }
@@ -66,4 +67,29 @@ export async function deleteService(id: string) {
     } catch (e) {
         return { error: "Impossible de supprimer (Probablement lié à des jobs existants)" }
     }
+}
+
+export async function createServiceExtra(serviceId: string, formData: FormData) {
+    const label = (formData.get("label") as string)?.trim()
+    const priceExtra = parseFloat(formData.get("priceExtra") as string) || 0
+    const durationExtraMin = parseInt(formData.get("durationExtraMin") as string, 10) || 0
+    if (!label) return { error: "Libellé requis" }
+
+    const agg = await prisma.serviceExtra.aggregate({
+        where: { serviceId },
+        _max: { sortOrder: true },
+    })
+    const sortOrder = (agg._max.sortOrder ?? -1) + 1
+
+    await prisma.serviceExtra.create({
+        data: { serviceId, label, priceExtra, durationExtraMin, sortOrder },
+    })
+    revalidatePath("/admin/services")
+    return { success: true }
+}
+
+export async function deleteServiceExtra(id: string) {
+    await prisma.serviceExtra.delete({ where: { id } })
+    revalidatePath("/admin/services")
+    return { success: true }
 }

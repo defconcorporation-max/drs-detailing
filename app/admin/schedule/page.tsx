@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobList } from "@/components/admin/JobList"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { updateJobColor } from "@/lib/actions/schedule"
 import { EditJobDialog } from "@/components/admin/EditJobDialog"
+import { jobDurationMinutes } from "@/lib/job-metrics"
+import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
 import { AvailabilityGenerator } from "@/components/admin/AvailabilityGenerator"
 
 // Helper to get week dates
@@ -59,8 +60,13 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
 
     return (
         <div className="space-y-6 flex flex-col h-[calc(100vh-100px)]">
-            <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Planning</h2>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 className="font-display text-3xl font-bold tracking-tight uppercase">Planning</h2>
+                    <p className="text-xs text-muted-foreground">
+                        Couleurs = statut · Gris = en attente / demande client · Cyan = confirmé ou planifié · Ambre = en cours
+                    </p>
+                </div>
                 <div className="flex gap-2 items-center">
                     {employeeId && (
                         <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900 px-3 py-1 rounded text-sm">
@@ -192,7 +198,7 @@ function ScheduleGrid({ weekDays, jobs, selectors, availabilities }: any) {
                             if (jobDateStr !== dayStr) return false
 
                             const jobStartH = jobD.getHours()
-                            const jobDurationMin = job.services?.reduce((acc: number, cur: any) => acc + (cur.service.durationMin || 0), 0) || 60
+                            const jobDurationMin = jobDurationMinutes(job.services || [])
                             const jobEndH = jobStartH + (jobDurationMin / 60)
 
                             // Check if job covers this hour slot (Left inclusive, Right exclusive)
@@ -292,31 +298,23 @@ function ScheduleGrid({ weekDays, jobs, selectors, availabilities }: any) {
     )
 }
 
-function JobCard({ job, selectors }: { job: any, selectors: any }) {
-    // Calculate duration in minutes (default to 60 if 0)
-    const durationMin = job.services?.reduce((acc: number, curr: any) => acc + (curr.service.durationMin || 0), 0) || 60
-
-    // Calculate height: 60px per hour
-    // Subtract some padding/margin to avoid overlap if needed, or keep exact.
-    const heightPx = Math.max(30, (durationMin / 60) * 60) // Min height 30px
-
-    const bgColor = job.color || "#3b82f6" // Default blue
-    const textColor = "text-white"
+function JobCard({ job, selectors }: { job: any; selectors: any }) {
+    const durationMin = jobDurationMinutes(job.services || [])
+    const heightPx = Math.max(30, (durationMin / 60) * 60)
+    const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
 
     return (
         <Popover>
             <PopoverTrigger asChild>
                 <div
-                    className="rounded p-1 text-xs overflow-hidden cursor-pointer hover:brightness-110 shadow-sm transition-all absolute w-full z-10"
+                    className={`rounded-lg p-1.5 text-xs overflow-hidden cursor-pointer transition-all absolute w-full z-10 hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""}`}
                     style={{
-                        backgroundColor: bgColor,
-                        color: textColor,
                         height: `${heightPx}px`,
-                        minHeight: '30px'
+                        minHeight: "30px",
                     }}
                 >
                     <div className="font-bold truncate">{job.client?.user?.name}</div>
-                    <div className="truncate opacity-90 text-[10px] uppercase tracking-wide">
+                    <div className="truncate text-[10px] uppercase tracking-wide opacity-90">
                         {job.vehicle?.type ? `${job.vehicle.type}` : job.services?.[0]?.service?.name}
                     </div>
 
@@ -345,10 +343,13 @@ function JobCard({ job, selectors }: { job: any, selectors: any }) {
                     </div>
                 </div>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0 pointer-events-auto">
-                <div className="p-4 space-y-4">
-                    <div className="flex justify-between items-start">
-                        <h3 className="font-medium text-lg">Détails du Job</h3>
+            <PopoverContent className="w-80 p-0 pointer-events-auto rounded-xl">
+                <div className="space-y-4 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                        <div>
+                            <h3 className="text-lg font-semibold">Détails du job</h3>
+                            <p className="text-xs text-muted-foreground">Couleur = statut (non modifiable)</p>
+                        </div>
                         <EditJobDialog
                             job={job}
                             clients={selectors.clients}
@@ -364,7 +365,7 @@ function JobCard({ job, selectors }: { job: any, selectors: any }) {
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                             <Clock size={16} className="text-muted-foreground" />
-                            {job.services?.reduce((acc: number, curr: any) => acc + (curr.service.durationMin || 0), 0)} min (Est.)
+                            {durationMin} min (estimé, extras inclus)
                         </div>
                         <div className="text-sm">
                             Client: <span className="font-medium">{job.client?.user?.name}</span>
@@ -382,33 +383,8 @@ function JobCard({ job, selectors }: { job: any, selectors: any }) {
                         </div>
                     </div>
 
-                    <ColorPicker id={job.id} currentColor={bgColor} />
                 </div>
             </PopoverContent>
         </Popover>
-    )
-}
-
-function ColorPicker({ id, currentColor }: { id: string, currentColor: string }) {
-    const colors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#64748b"]
-
-    return (
-        <div className="space-y-2 pt-2 border-t">
-            <span className="text-xs font-semibold">Étiquette Couleur</span>
-            <div className="flex flex-wrap gap-2">
-                {colors.map(c => (
-                    <form key={c} action={async () => {
-                        "use server"
-                        await updateJobColor(id, c)
-                    }}>
-                        <button
-                            className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${currentColor === c ? 'border-black dark:border-white' : 'border-transparent'}`}
-                            style={{ backgroundColor: c }}
-                            type="submit"
-                        />
-                    </form>
-                ))}
-            </div>
-        </div>
     )
 }

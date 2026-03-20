@@ -31,7 +31,10 @@ export default async function ServicesPage() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Services & Tarifs</h2>
+                <div>
+                    <h2 className="font-display text-3xl font-bold tracking-tight uppercase">Services &amp; tarifs</h2>
+                    <p className="text-sm text-muted-foreground">Définissez des extras (VUS, dégâts, etc.) par service.</p>
+                </div>
                 <AddServiceDialog />
             </div>
 
@@ -50,6 +53,7 @@ export default async function ServicesPage() {
                                 <TableHead>Description</TableHead>
                                 <TableHead>Durée (min)</TableHead>
                                 <TableHead className="w-[100px]">Prix ($)</TableHead>
+                                <TableHead className="min-w-[140px]">Extras</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -59,7 +63,7 @@ export default async function ServicesPage() {
                             ))}
                             {services.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                                         Aucun service configuré.
                                     </TableCell>
                                 </TableRow>

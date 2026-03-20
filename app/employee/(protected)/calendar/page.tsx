@@ -22,7 +22,8 @@ export default async function EmployeeCalendarPage() {
     // Filters
     const allJobs = await getJobs()
     const myJobs = allJobs.filter((j: any) => {
-        if (!['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'PENDING'].includes(j.status)) return false
+        if (!["SCHEDULED", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "PENDING", "REQUESTED", "RESCHEDULE_REQUESTED"].includes(j.status))
+            return false
         const assigned = j.employees?.some((emp: any) => emp.user.id === currentUserId)
         const legacyAssigned = j.employee?.user?.id === currentUserId
         return assigned || legacyAssigned
