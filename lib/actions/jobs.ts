@@ -4,6 +4,18 @@ import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { buildLinesFromIds, parseServiceExtrasMap, totalsFromLines } from "@/lib/parse-job-extras"
 
+/** Date/heure interprétées en local dans le navigateur (ms UTC) — évite le décalage si le serveur est en autre fuseau. */
+function scheduledDateFromFormData(data: FormData): Date {
+    const utcMs = data.get("scheduledAtUtcMs") as string | null
+    if (utcMs && /^\d+$/.test(utcMs)) {
+        const t = parseInt(utcMs, 10)
+        if (!Number.isNaN(t)) return new Date(t)
+    }
+    const dateStr = data.get("date") as string
+    const timeStr = data.get("time") as string
+    return new Date(`${dateStr}T${timeStr}:00`)
+}
+
 export async function createJob(data: FormData) {
     const clientId = data.get("clientId") as string
     let vehicleId = (data.get("vehicleId") as string) || ""
@@ -52,7 +64,7 @@ export async function createJob(data: FormData) {
         const lines = await buildLinesFromIds(serviceIds, extrasMap)
         const { totalPrice } = totalsFromLines(lines)
 
-        const scheduledDate = new Date(`${dateStr}T${timeStr}:00`)
+        const scheduledDate = scheduledDateFromFormData(data)
 
         await prisma.job.create({
             data: {
@@ -139,7 +151,7 @@ export async function updateJob(id: string, data: FormData) {
     const extrasMap = parseServiceExtrasMap(data)
 
     try {
-        const scheduledDate = new Date(`${dateStr}T${timeStr}:00`)
+        const scheduledDate = scheduledDateFromFormData(data)
         const lines = await buildLinesFromIds(serviceIds, extrasMap)
         const { totalPrice } = totalsFromLines(lines)
 

@@ -19,8 +19,8 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
 
-    const initialDate = new Date(job.scheduledDate).toISOString().split("T")[0]
-    const initialTime = new Date(job.scheduledDate).toTimeString().substring(0, 5)
+    const initialDate = localDateKey(job.scheduledDate)
+    const initialTime = localTimeHM(job.scheduledDate)
     const existingServiceIds = job.services.map((s: any) => s.serviceId)
 
     const [status, setStatus] = useState(job.status)
@@ -61,6 +61,11 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
         })
     }, [selectedServiceIds])
 
+    const scheduledAtUtcMs = useMemo(() => {
+        const t = new Date(`${editDate}T${editTime}:00`).getTime()
+        return Number.isNaN(t) ? "" : String(t)
+    }, [editDate, editTime])
+
     function toggleService(id: string) {
         setSelectedServiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
     }
@@ -88,6 +93,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                     }}
                     className="space-y-6 py-2"
                 >
+                    <input type="hidden" name="scheduledAtUtcMs" value={scheduledAtUtcMs} />
                     <div className="grid grid-cols-2 gap-2 rounded-xl border border-border/50 bg-muted/20 p-3 text-sm">
                         <div>
                             <span className="font-semibold">Client :</span> {job.client?.user?.name || "—"}
@@ -98,8 +104,8 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-4 min-w-0">
+                        <div className="min-w-0 space-y-2">
                             <Label>Date</Label>
                             <input type="hidden" name="date" value={editDate} />
                             <Input
@@ -110,7 +116,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                                 className="rounded-xl"
                             />
                         </div>
-                        <div className="space-y-2">
+                        <div className="min-w-0 space-y-2">
                             <Label>Heure</Label>
                             <input type="hidden" name="time" value={editTime} />
                             <Input
@@ -123,8 +129,8 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4 min-w-0">
+                        <div className="min-w-0 space-y-2 overflow-hidden">
                             <Label>Assigné à</Label>
                             <EditJobEmployeeSelect
                                 job={job}
@@ -132,13 +138,15 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                                 services={services}
                                 selectedServiceIds={selectedServiceIds}
                                 serviceExtras={serviceExtras}
+                                availabilityDate={editDate}
+                                availabilityTime={editTime}
                             />
                         </div>
-                        <div className="space-y-2">
+                        <div className="min-w-0 space-y-2">
                             <Label>Statut</Label>
                             <input type="hidden" name="status" value={status} />
                             <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger className="rounded-xl">
+                                <SelectTrigger className="w-full min-w-0 rounded-xl">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -204,12 +212,16 @@ function EditJobEmployeeSelect({
     services,
     selectedServiceIds,
     serviceExtras,
+    availabilityDate,
+    availabilityTime,
 }: {
     job: any
     employees: any[]
     services: any[]
     selectedServiceIds: string[]
     serviceExtras: Record<string, string[]>
+    availabilityDate: string
+    availabilityTime: string
 }) {
     const [availability, setAvailability] = useState<Record<string, { status: string; reason?: string }>>({})
     const initialIds = job.employees?.map((e: any) => e.id) || (job.employeeId ? [job.employeeId] : [])
@@ -232,17 +244,17 @@ function EditJobEmployeeSelect({
 
     useEffect(() => {
         const check = async () => {
-            const dateStr = new Date(job.scheduledDate).toISOString().split("T")[0]
-            const timeStr = new Date(job.scheduledDate).toTimeString().substring(0, 5)
+            if (!availabilityDate || !availabilityTime) return
             try {
-                const res = await checkTeamAvailability(dateStr, timeStr, durationEstimate)
+                const res = await checkTeamAvailability(availabilityDate, availabilityTime, durationEstimate)
                 setAvailability(res)
             } catch (e) {
                 console.error(e)
             }
         }
-        check()
-    }, [job.scheduledDate, durationEstimate])
+        const t = setTimeout(check, 400)
+        return () => clearTimeout(t)
+    }, [availabilityDate, availabilityTime, durationEstimate])
 
     const sortedEmployees = [...employees].sort((a: any, b: any) => {
         const statusA = availability[a.id]?.status || "OFF"
@@ -257,7 +269,7 @@ function EditJobEmployeeSelect({
     })
 
     return (
-        <div className="space-y-2">
+        <div className="min-w-0 max-w-full space-y-2">
             {selectedEmployees.map((id) => (
                 <input key={id} type="hidden" name="employeeId" value={id} />
             ))}

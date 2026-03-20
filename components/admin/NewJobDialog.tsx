@@ -118,6 +118,8 @@ export function NewJobDialog({
         }
         selectedServices.forEach((id) => formData.append("serviceId", id))
         formData.set("serviceExtras", JSON.stringify(serviceExtras))
+        const utcMs = new Date(`${date}T${time}:00`).getTime()
+        if (!Number.isNaN(utcMs)) formData.set("scheduledAtUtcMs", String(utcMs))
         if (isNewVehicle) {
             formData.set("newVehicle", "on")
         } else {
