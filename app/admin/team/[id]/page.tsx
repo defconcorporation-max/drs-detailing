@@ -52,9 +52,12 @@ export default async function EditEmployeePage({ params }: { params: Promise<{ i
                             <Input name="email" type="email" defaultValue={employee.email || ""} required />
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label>Mot de passe</Label>
-                            <Input name="password" type="text" defaultValue={employee.password || ""} required />
+                        <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-2">
+                            <Label>Nouveau mot de passe</Label>
+                            <p className="text-xs text-muted-foreground">
+                                Laisser vide pour ne pas modifier. Sinon saisissez le nouveau mot de passe.
+                            </p>
+                            <Input name="newPassword" type="password" autoComplete="new-password" placeholder="(inchangé)" className="rounded-xl" />
                         </div>
 
                         <div className="grid gap-2">

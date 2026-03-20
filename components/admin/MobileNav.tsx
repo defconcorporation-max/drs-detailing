@@ -18,12 +18,14 @@ import {
     LogOut,
     Shield,
     Car,
+    UserCog,
 } from "lucide-react"
 
 const sidebarItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/schedule", icon: Calendar, label: "Planning / Schedule" },
     { href: "/admin/clients", icon: Users, label: "Clients" },
+    { href: "/admin/users", icon: UserCog, label: "Utilisateurs" },
     { href: "/admin/team", icon: Shield, label: "Équipe" },
     { href: "/admin/availability", icon: Clock, label: "Disponibilités" },
     { href: "/admin/services", icon: Car, label: "Services & Prix" },

@@ -15,6 +15,7 @@ import {
     LogOut,
     Clock,
     Shield,
+    UserCog,
 } from "lucide-react"
 import { BrandMark } from "@/components/brand/BrandMark"
 
@@ -22,6 +23,7 @@ const sidebarItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/schedule", icon: Calendar, label: "Planning / Schedule" },
     { href: "/admin/clients", icon: Users, label: "Clients" },
+    { href: "/admin/users", icon: UserCog, label: "Utilisateurs" },
     { href: "/admin/team", icon: Shield, label: "Équipe" },
     { href: "/admin/availability", icon: Clock, label: "Disponibilités" },
     { href: "/admin/services", icon: Car, label: "Services & Prix" },

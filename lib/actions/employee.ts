@@ -48,7 +48,7 @@ export async function getEmployeeById(id: string) {
 export async function updateEmployee(id: string, data: FormData) {
     const name = data.get('name') as string
     const email = data.get('email') as string
-    const password = data.get('password') as string
+    const newPassword = ((data.get('newPassword') as string) || (data.get('password') as string) || '').trim()
     const hourlyRate = parseFloat(data.get('hourlyRate') as string)
 
     try {
@@ -57,7 +57,7 @@ export async function updateEmployee(id: string, data: FormData) {
             data: {
                 name,
                 email,
-                password,
+                ...(newPassword ? { password: newPassword } : {}),
                 employeeProfile: {
                     update: {
                         hourlyRate: hourlyRate || 0

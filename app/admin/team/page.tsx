@@ -15,11 +15,18 @@ export default async function TeamPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Équipe</h2>
-                <Link href="/admin/team/new">
-                    <Button className="gap-2">
-                        <UserPlus size={16} /> Ajouter Employé
-                    </Button>
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                    <Link href="/admin/users/new">
+                        <Button variant="outline" className="gap-2 rounded-xl">
+                            <UserPlus size={16} /> Compte employé (rôles)
+                        </Button>
+                    </Link>
+                    <Link href="/admin/team/new">
+                        <Button className="gap-2 rounded-xl">
+                            <UserPlus size={16} /> Ajouter Employé
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-1">
