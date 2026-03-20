@@ -36,7 +36,7 @@ export function AdminSidebar() {
     const pathname = usePathname()
 
     return (
-        <div className="hidden md:flex h-screen w-72 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300">
+        <div className="hidden md:flex h-screen w-72 flex-col border-r border-sidebar-border/80 bg-sidebar/92 text-sidebar-foreground shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition-all duration-300 dark:bg-gradient-to-b dark:from-sidebar dark:via-sidebar dark:to-black/25">
             {/* Header / Logo */}
             <div className="border-b border-sidebar-border/50 p-6">
                 <Link href="/admin" className="group flex items-center gap-3">

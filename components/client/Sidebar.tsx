@@ -16,7 +16,7 @@ export function ClientSidebar() {
     const pathname = usePathname()
 
     return (
-        <div className="hidden h-screen w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+        <div className="hidden h-screen w-72 shrink-0 flex-col border-r border-sidebar-border/80 bg-sidebar/92 text-sidebar-foreground shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.05)] backdrop-blur-xl md:flex dark:bg-gradient-to-b dark:from-sidebar dark:via-sidebar dark:to-black/25">
             <div className="border-b border-sidebar-border/50 p-6">
                 <Link href="/client" className="group flex items-center gap-3">
                     <BrandMark compact className="group-hover:scale-105 transition-transform" />

@@ -258,10 +258,47 @@ html:not(.dark) .marketing-backdrop::before {
 }
 
 .glass-panel {
-  @apply border border-border/60 bg-card/80 backdrop-blur-xl shadow-2xl;
+  @apply premium-surface border-border/60 bg-card/75 shadow-2xl;
 }
 .dark .glass-panel {
-  @apply border-white/[0.07] shadow-black/50;
+  @apply border-white/[0.08] shadow-black/50;
+}
+
+/* Surface premium réutilisable partout (cards, modals, panneaux) */
+.premium-surface {
+  @apply relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/92 to-card/65 shadow-xl backdrop-blur-xl;
+  box-shadow:
+    0 18px 60px -30px oklch(0.45 0.08 220 / 0.35),
+    inset 0 1px 0 oklch(1 0 0 / 0.08);
+}
+.premium-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    oklch(1 0 0 / 0.07) 0%,
+    oklch(1 0 0 / 0.015) 40%,
+    transparent 70%
+  );
+}
+.dark .premium-surface {
+  @apply border-white/[0.08];
+}
+
+/* Contrôles premium (inputs, selects, etc.) */
+.premium-control {
+  @apply rounded-xl border border-border/70 bg-card/65 shadow-sm backdrop-blur-md transition-[color,box-shadow,border-color,background-color];
+}
+.premium-control:hover {
+  @apply border-primary/35 bg-card/75;
+}
+.premium-control:focus-visible {
+  box-shadow:
+    0 0 0 3px oklch(from var(--ring) l c h / 0.28),
+    0 6px 24px -12px oklch(from var(--ring) l c h / 0.55);
 }
 
 /* Métal / chrome sur texte */
