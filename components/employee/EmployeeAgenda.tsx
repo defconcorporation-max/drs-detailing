@@ -10,6 +10,12 @@ import { Badge } from "@/components/ui/badge"
 import { jobDurationMinutes } from "@/lib/job-metrics"
 import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
 import {
+    formatJobPrice,
+    jobAssigneesNames,
+    jobServicesSummary,
+    jobVehicleSummary,
+} from "@/lib/job-display"
+import {
     Dialog,
     DialogContent,
     DialogHeader,
@@ -152,6 +158,11 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                         const duration = jobDurationMinutes(job.services || [])
                                         const heightPct = (duration / TOTAL_MINUTES) * 100
                                         const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
+                                        const vehicleStr = jobVehicleSummary(job)
+                                        const servicesStr = jobServicesSummary(job)
+                                        const assigneesStr = jobAssigneesNames(job)
+                                        const priceStr = formatJobPrice(job)
+                                        const compactCard = duration < 50
 
                                         // Recalculate End Time String for Display
                                         const endTotalMin = startMinutes + duration
@@ -163,14 +174,43 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                             <Dialog key={job.id}>
                                                 <DialogTrigger asChild>
                                                     <div
-                                                        className={`absolute left-[2.5%] w-[95%] rounded-lg border p-1.5 text-xs shadow-md transition-transform hover:scale-[1.02] z-10 cursor-pointer overflow-hidden ${box} ${text} ${opacity ?? ""}`}
+                                                        className={`absolute left-[2.5%] z-10 flex w-[95%] cursor-pointer flex-col overflow-hidden rounded-lg border p-1.5 text-xs shadow-md transition-transform hover:scale-[1.02] ${box} ${text} ${opacity ?? ""}`}
                                                         style={{
                                                             top: `${topPct}%`,
                                                             height: `${heightPct}%`,
                                                         }}
+                                                        title={[job.client.user.name, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}
                                                     >
-                                                        <div className="font-bold truncate">{job.client.user.name}</div>
-                                                        <div className="truncate opacity-90">{job.vehicle?.make} {job.vehicle?.model}</div>
+                                                        {compactCard ? (
+                                                            <>
+                                                                <div className="truncate font-bold leading-tight">{job.client.user.name}</div>
+                                                                <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
+                                                                    {[vehicleStr, servicesStr || "Sans service", assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="shrink-0 truncate font-bold leading-tight">{job.client.user.name}</div>
+                                                                {vehicleStr ? (
+                                                                    <div className="shrink-0 truncate text-[10px] opacity-90" title={vehicleStr}>
+                                                                        {vehicleStr}
+                                                                    </div>
+                                                                ) : null}
+                                                                <div className="min-h-0 flex-1 text-[10px] leading-tight opacity-85 line-clamp-2" title={servicesStr || undefined}>
+                                                                    {servicesStr || <span className="opacity-70">Aucun service</span>}
+                                                                </div>
+                                                                <div className="mt-auto flex shrink-0 items-end justify-between gap-1 border-t border-black/10 pt-0.5 dark:border-white/15">
+                                                                    <div className="min-w-0 flex-1 truncate text-[10px] font-medium" title={assigneesStr || undefined}>
+                                                                        {assigneesStr ? assigneesStr : <span className="opacity-70">Non assigné</span>}
+                                                                    </div>
+                                                                    {priceStr ? (
+                                                                        <span className="shrink-0 text-[10px] font-bold tabular-nums">{priceStr}</span>
+                                                                    ) : (
+                                                                        <span className="shrink-0 text-[10px] opacity-60">—</span>
+                                                                    )}
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </DialogTrigger>
                                                 <DialogContent>
@@ -189,14 +229,30 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                                             <div className="text-muted-foreground text-sm flex items-center gap-2">
                                                                 <MapPin size={14} /> {job.client.address || "Aucune adresse"}
                                                             </div>
-                                                            <div className="text-sm mt-2 font-medium">{job.vehicle?.make} {job.vehicle?.model} ({job.vehicle?.color})</div>
+                                                            <div className="text-sm mt-2 font-medium">
+                                                                {[jobVehicleSummary(job), job.vehicle?.color].filter(Boolean).join(" · ") || "—"}
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-sm">
+                                                            <span className="font-semibold">Équipe :</span>{" "}
+                                                            <span>{jobAssigneesNames(job) || "Non assigné"}</span>
+                                                        </div>
+                                                        <div className="text-sm">
+                                                            <span className="font-semibold">Total :</span>{" "}
+                                                            <span className="font-bold">{formatJobPrice(job) ?? "—"}</span>
                                                         </div>
                                                         <div>
                                                             <div className="font-semibold text-sm mb-2">Services:</div>
                                                             <div className="flex flex-wrap gap-2">
-                                                                {job.services.map((s: any) => (
-                                                                    <Badge key={s.service.id} variant="outline">{s.service.name}</Badge>
-                                                                ))}
+                                                                {job.services?.length ? (
+                                                                    job.services.map((s: any) => (
+                                                                        <Badge key={s.service.id} variant="outline">
+                                                                            {s.service.name}
+                                                                        </Badge>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-muted-foreground text-sm">—</span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>

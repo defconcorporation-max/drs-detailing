@@ -9,7 +9,13 @@ import { NewJobDialog } from "@/components/admin/NewJobDialog"
 import { jobDurationMinutes } from "@/lib/job-metrics"
 import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
 import { localDateKey, localHour } from "@/lib/date-local"
-import { Calendar as CalendarIcon, Clock } from "lucide-react"
+import {
+    formatJobPrice,
+    jobAssigneesNames,
+    jobServicesSummary,
+    jobVehicleSummary,
+} from "@/lib/job-display"
+import { Calendar as CalendarIcon, Clock, Car, Users, Receipt } from "lucide-react"
 
 export type WeekColumnMeta = {
     key: string
@@ -176,35 +182,58 @@ function JobCard({ job, selectors }: { job: any; selectors: any }) {
     const heightPx = Math.max(28, (durationMin / 60) * 52)
     const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
 
+    const vehicleStr = jobVehicleSummary(job)
+    const servicesStr = jobServicesSummary(job)
+    const assigneesStr = jobAssigneesNames(job)
+    const priceStr = formatJobPrice(job)
+    const clientName = job.client?.user?.name ?? "—"
+    /** Sous ~45px de hauteur, empiler tout tasserait : on fusionne en 2 lignes. */
+    const compact = heightPx < 46
+
     return (
         <Popover>
             <PopoverTrigger asChild>
                 <div
-                    className={`absolute z-10 w-full cursor-pointer overflow-hidden rounded-lg p-1.5 text-xs transition-all hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""}`}
+                    className={`absolute z-10 flex w-full cursor-pointer flex-col overflow-hidden rounded-lg p-1.5 text-xs transition-all hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""}`}
                     style={{
                         height: `${heightPx}px`,
                         minHeight: "28px",
                     }}
+                    title={[clientName, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}
                 >
-                    <div className="truncate font-bold">{job.client?.user?.name}</div>
-                    <div className="truncate text-[10px] uppercase tracking-wide opacity-90">
-                        {job.vehicle?.type ? `${job.vehicle.type}` : job.services?.[0]?.service?.name}
-                    </div>
-                    <div className="absolute right-1 bottom-1 flex -space-x-1">
-                        {(() => {
-                            const employees =
-                                job.employees && job.employees.length > 0 ? job.employees : job.employee ? [job.employee] : []
-                            return employees.slice(0, 3).map((emp: any) => (
-                                <div
-                                    key={emp.id}
-                                    className="flex size-4 items-center justify-center rounded-full bg-white text-[8px] font-bold text-black ring-1 ring-white/50"
-                                    title={emp.user?.name}
-                                >
-                                    {emp.user?.name?.substring(0, 2).toUpperCase()}
+                    {compact ? (
+                        <>
+                            <div className="truncate font-bold leading-tight">{clientName}</div>
+                            <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
+                                {[vehicleStr, servicesStr || "Sans service", assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="shrink-0 truncate font-bold leading-tight">{clientName}</div>
+                            {vehicleStr ? (
+                                <div className="shrink-0 truncate text-[10px] leading-tight opacity-90" title={vehicleStr}>
+                                    {vehicleStr}
                                 </div>
-                            ))
-                        })()}
-                    </div>
+                            ) : null}
+                            <div
+                                className="min-h-0 flex-1 text-[10px] leading-tight opacity-85 line-clamp-2"
+                                title={servicesStr || undefined}
+                            >
+                                {servicesStr || <span className="opacity-70">Aucun service</span>}
+                            </div>
+                            <div className="mt-auto flex shrink-0 items-end justify-between gap-1 border-t border-black/10 pt-0.5 dark:border-white/15">
+                                <div className="min-w-0 flex-1 truncate text-[10px] font-medium" title={assigneesStr || undefined}>
+                                    {assigneesStr ? assigneesStr : <span className="opacity-70">Non assigné</span>}
+                                </div>
+                                {priceStr ? (
+                                    <span className="shrink-0 text-[10px] font-bold tabular-nums">{priceStr}</span>
+                                ) : (
+                                    <span className="shrink-0 text-[10px] opacity-60">—</span>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </PopoverTrigger>
             <PopoverContent className="w-80 rounded-xl p-0">
@@ -233,15 +262,31 @@ function JobCard({ job, selectors }: { job: any; selectors: any }) {
                         <div>
                             Client : <span className="font-medium">{job.client?.user?.name}</span>
                         </div>
+                        <div className="flex items-start gap-2">
+                            <Car size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
+                            <span>{vehicleStr || "—"}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <Users size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
+                            <span>{assigneesStr || "Non assigné"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Receipt size={16} className="shrink-0 text-muted-foreground" />
+                            <span className="font-semibold">{priceStr ?? "—"}</span>
+                        </div>
                     </div>
                     <div className="text-sm">
                         <span className="font-semibold text-muted-foreground">Services :</span>
                         <div className="mt-1 flex flex-wrap gap-1">
-                            {job.services?.map((s: any) => (
-                                <span key={s.serviceId} className="rounded bg-secondary px-2 py-0.5 text-[10px]">
-                                    {s.service.name}
-                                </span>
-                            ))}
+                            {job.services?.length ? (
+                                job.services.map((s: any) => (
+                                    <span key={s.serviceId} className="rounded bg-secondary px-2 py-0.5 text-[10px]">
+                                        {s.service.name}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className="text-muted-foreground">—</span>
+                            )}
                         </div>
                     </div>
                 </div>
