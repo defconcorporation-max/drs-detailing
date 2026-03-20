@@ -41,7 +41,10 @@ export default function EmployeeLoginPage() {
                     </div>
                     <div>
                         <CardTitle className="font-display text-2xl font-bold tracking-wide uppercase">Baie technique</CardTitle>
-                        <CardDescription className="text-base">Identifiants équipe — planning &amp; jobs</CardDescription>
+                        <CardDescription className="text-base">
+                            Employés : e-mail + mot de passe. Les <strong>administrateurs</strong> peuvent aussi se connecter avec leurs
+                            identifiants pour consulter le planning équipe.
+                        </CardDescription>
                     </div>
                 </CardHeader>
                 <CardContent>

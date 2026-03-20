@@ -3,6 +3,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import prisma from "@/lib/db"
 import { WeekEditor } from "@/components/employee/WeekEditor"
 import { cookies } from "next/headers"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { isAdminEmployeePortalView } from "@/lib/employee-portal"
 
 export default async function AvailabilityPage() {
     const cookieStore = await cookies()
@@ -14,10 +17,30 @@ export default async function AvailabilityPage() {
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { employeeProfile: true }
+        include: { employeeProfile: true },
     })
 
-    if (!user || !user.employeeProfile) {
+    if (!user) {
+        return <div className="p-8 text-center text-red-500">Non connecté.</div>
+    }
+
+    const adminNoProfile = isAdminEmployeePortalView(user.role) && !user.employeeProfile
+    if (adminNoProfile) {
+        return (
+            <div className="mx-auto max-w-lg space-y-4 rounded-xl border border-border/60 bg-muted/20 p-8 text-center">
+                <h2 className="text-2xl font-bold tracking-tight">Disponibilités</h2>
+                <p className="text-muted-foreground text-sm">
+                    Ce compte administrateur n&apos;a pas de profil employé. Pour éditer vos créneaux personnels ici, ajoutez un profil
+                    employé au même utilisateur (Admin → Utilisateurs). Sinon, gérez l&apos;équipe depuis l&apos;administration.
+                </p>
+                <Button asChild className="rounded-xl">
+                    <Link href="/admin/availability">Disponibilités (admin)</Link>
+                </Button>
+            </div>
+        )
+    }
+
+    if (!user.employeeProfile) {
         return <div className="p-8 text-center text-red-500">Profil employé introuvable.</div>
     }
 

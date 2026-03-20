@@ -4,9 +4,9 @@ import prisma from "@/lib/db"
 import { cookies } from "next/headers"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, CheckCircle2, Car, TrendingUp } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Calendar, Clock, MapPin, Car, TrendingUp } from "lucide-react"
 import { startOfYear, endOfYear, startOfWeek, endOfWeek, isWithinInterval } from "date-fns"
+import { filterJobsForPortal, isAdminEmployeePortalView } from "@/lib/employee-portal"
 
 export default async function EmployeeDashboard() {
     const cookieStore = await cookies()
@@ -16,21 +16,16 @@ export default async function EmployeeDashboard() {
 
     const user = await prisma.user.findUnique({
         where: { id: currentUserId },
-        include: { employeeProfile: true }
+        include: { employeeProfile: true },
     })
 
-    if (!user || !user.employeeProfile) return <div>Profil employé introuvable</div>
+    if (!user) return <div>Non connecté</div>
+
+    const adminView = isAdminEmployeePortalView(user.role)
+    if (!adminView && !user.employeeProfile) return <div>Profil employé introuvable</div>
 
     const allJobs = await getJobs()
-    const myJobs = allJobs.filter((j: any) => {
-        // Filter logic: assigned + valid status
-        const valid = ['SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'PENDING'].includes(j.status)
-        if (!valid) return false
-
-        const assigned = j.employees?.some((emp: any) => emp.user.id === currentUserId)
-        const legacyAssigned = j.employee?.user?.id === currentUserId
-        return assigned || legacyAssigned
-    })
+    const myJobs = filterJobsForPortal(allJobs, currentUserId, { isAdminView: adminView })
 
     // KPI Calculations
     const now = new Date()
@@ -54,7 +49,14 @@ export default async function EmployeeDashboard() {
 
     return (
         <div className="space-y-8">
-            <h2 className="text-3xl font-bold tracking-tight">Tableau de Bord</h2>
+            <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight">Tableau de Bord</h2>
+                {adminView && (
+                    <p className="text-sm text-muted-foreground rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+                        Connexion <strong>administrateur</strong> : vous voyez tous les rendez-vous de l&apos;équipe (vue lecture).
+                    </p>
+                )}
+            </div>
 
             {/* KPI Section */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

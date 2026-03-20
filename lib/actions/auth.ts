@@ -27,22 +27,21 @@ export async function loginAdmin(formData: FormData) {
 }
 
 export async function loginEmployee(formData: FormData) {
-    const email = formData.get("email") as string
+    const email = ((formData.get("email") as string) || "").trim().toLowerCase()
     const password = formData.get("password") as string
 
     const user = await prisma.user.findUnique({
         where: { email },
-        include: { employeeProfile: true }
+        include: { employeeProfile: true },
     })
 
-    if (user && user.role === 'EMPLOYEE' && user.password === password) {
-        // In real app, use a proper session token. Here, just user ID.
+    const okRole = user && (user.role === "EMPLOYEE" || user.role === "ADMIN")
+    if (user && okRole && user.password === password) {
         const cookieStore = await cookies()
-        cookieStore.set("drs_employee_session", user.id, { httpOnly: true, path: '/' })
+        cookieStore.set("drs_employee_session", user.id, { httpOnly: true, path: "/" })
         return { success: true }
-    } else {
-        return { error: "Identifiants invalides" }
     }
+    return { error: "Identifiants invalides" }
 }
 
 export async function logout() {

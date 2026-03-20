@@ -4,6 +4,7 @@ import { AppChromeBar } from "@/components/showroom/AppChromeBar"
 import { cookies } from "next/headers"
 import prisma from "@/lib/db"
 import { redirect } from "next/navigation"
+import { canAccessEmployeePortal } from "@/lib/employee-portal"
 
 export default async function EmployeeLayout({
     children,
@@ -14,16 +15,16 @@ export default async function EmployeeLayout({
     const userId = cookieStore.get("drs_employee_session")?.value
 
     if (!userId) {
-        redirect("/login")
+        redirect("/employee/login")
     }
 
     const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { employeeProfile: true }
+        include: { employeeProfile: true },
     })
 
-    if (!user) {
-        redirect("/login")
+    if (!user || !canAccessEmployeePortal(user.role)) {
+        redirect("/employee/login")
     }
 
     return (
