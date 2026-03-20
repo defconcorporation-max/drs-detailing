@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { updateJob, deleteJob } from "@/lib/actions/jobs"
 import { checkTeamAvailability } from "@/lib/actions/availability"
 import { jobDurationMinutes, parseExtraIds } from "@/lib/job-metrics"
+import { localDateKey, localTimeHM } from "@/lib/date-local"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,8 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
     const existingServiceIds = job.services.map((s: any) => s.serviceId)
 
     const [status, setStatus] = useState(job.status)
+    const [editDate, setEditDate] = useState(initialDate)
+    const [editTime, setEditTime] = useState(initialTime)
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(existingServiceIds)
     const [serviceExtras, setServiceExtras] = useState<Record<string, string[]>>(() => {
         const m: Record<string, string[]> = {}
@@ -35,6 +38,8 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
     useEffect(() => {
         if (!open) return
         setStatus(job.status)
+        setEditDate(localDateKey(job.scheduledDate))
+        setEditTime(localTimeHM(job.scheduledDate))
         setSelectedServiceIds(job.services.map((s: any) => s.serviceId))
         const m: Record<string, string[]> = {}
         for (const js of job.services || []) {
@@ -96,11 +101,25 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Date</Label>
-                            <Input type="date" name="date" defaultValue={initialDate} required className="rounded-xl" />
+                            <input type="hidden" name="date" value={editDate} />
+                            <Input
+                                type="date"
+                                value={editDate}
+                                onChange={(e) => setEditDate(e.target.value)}
+                                required
+                                className="rounded-xl"
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label>Heure</Label>
-                            <Input type="time" name="time" defaultValue={initialTime} required className="rounded-xl" />
+                            <input type="hidden" name="time" value={editTime} />
+                            <Input
+                                type="time"
+                                value={editTime}
+                                onChange={(e) => setEditTime(e.target.value)}
+                                required
+                                className="rounded-xl"
+                            />
                         </div>
                     </div>
 

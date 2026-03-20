@@ -15,8 +15,21 @@ import { MultiSelect } from "@/components/ui/multi-select"
 import { QuickClientDialog } from "./QuickClientDialog"
 import { JobServiceExtrasPicker } from "@/components/admin/JobServiceExtrasPicker"
 
-export function NewJobDialog({ clients, employees, services, prefillDate, prefillTime, trigger }: any) {
-    const [open, setOpen] = useState(false)
+export function NewJobDialog({
+    clients,
+    employees,
+    services,
+    prefillDate,
+    prefillTime,
+    trigger,
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+    hideTrigger,
+}: any) {
+    const [internalOpen, setInternalOpen] = useState(false)
+    const controlled = controlledOpen !== undefined && controlledOnOpenChange !== undefined
+    const open = controlled ? controlledOpen : internalOpen
+    const setOpen = controlled ? controlledOnOpenChange : setInternalOpen
     const [selectedClient, setSelectedClient] = useState("")
     const [vehicleId, setVehicleId] = useState("")
     const [selectedServices, setSelectedServices] = useState<string[]>([])
@@ -26,6 +39,13 @@ export function NewJobDialog({ clients, employees, services, prefillDate, prefil
 
     const [date, setDate] = useState(prefillDate || "")
     const [time, setTime] = useState(prefillTime || "09:00")
+
+    // Sync créneau choisi sur le calendrier (dialog contrôlé)
+    useEffect(() => {
+        if (!open) return
+        if (prefillDate) setDate(prefillDate)
+        if (prefillTime != null && prefillTime !== "") setTime(prefillTime)
+    }, [open, prefillDate, prefillTime])
     const [checking, setChecking] = useState(false)
     const [availability, setAvailability] = useState<Record<string, { status: string; reason?: string }>>({})
 
@@ -142,17 +162,11 @@ export function NewJobDialog({ clients, employees, services, prefillDate, prefil
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Date</Label>
-                            <Input name="date" type="date" defaultValue={prefillDate} onChange={(e) => setDate(e.target.value)} required />
+                            <Input name="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
                         </div>
                         <div className="space-y-2">
                             <Label>Heure</Label>
-                            <Input
-                                name="time"
-                                type="time"
-                                defaultValue={prefillTime || "09:00"}
-                                onChange={(e) => setTime(e.target.value)}
-                                required
-                            />
+                            <Input name="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
                         </div>
                     </div>
 

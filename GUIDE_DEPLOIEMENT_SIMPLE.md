@@ -160,14 +160,16 @@ Si on te demande de te connecter à GitHub, suis les instructions (mot de passe 
 4. Sur la page de configuration :
    - **Framework** : Next.js (normalement déjà détecté).
    - Ne change pas **Build Command** (laisse `npm run build`).
-5. **Environment Variables** (important) :
+5. **Fuseau horaire (planning / RDV)** : dans Vercel → **Settings** → **Environment Variables**, ajoute **`TZ`** = `America/Toronto` (ou le fuseau de ton atelier). Sinon, les heures enregistrées côté serveur peuvent décaler les jobs sur le calendrier.
+
+6. **Environment Variables** (important) :
    - Clique sur **Add** (ou "Environment Variables").
    - **Name** : `DATABASE_URL`  
      **Value** : colle **exactement la même** URL que dans ton `.env` (celle de Supabase).
    - Clique à nouveau **Add**.
    - **Name** : `NEXT_PUBLIC_APP_URL`  
      **Value** : pour l’instant mets `https://ton-projet.vercel.app` (on mettra la vraie URL juste après le premier déploiement).
-6. Clique sur **Deploy**.
+7. Clique sur **Deploy**.
 
 Attends la fin du build. À la fin, Vercel t’affiche l’URL de ton site (ex. `https://drs-detailing-software-xxx.vercel.app`).
 

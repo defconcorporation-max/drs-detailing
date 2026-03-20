@@ -2,24 +2,18 @@
 import { getJobs, getScheduleSelectors } from "@/lib/actions/jobs"
 import { getAllAvailabilities } from "@/lib/actions/availability"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
+import { ScheduleGridClient } from "@/components/admin/ScheduleGridClient"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobList } from "@/components/admin/JobList"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { EditJobDialog } from "@/components/admin/EditJobDialog"
-import { jobDurationMinutes } from "@/lib/job-metrics"
-import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
 import { AvailabilityGenerator } from "@/components/admin/AvailabilityGenerator"
+import { localDateKey } from "@/lib/date-local"
 
-// Helper to get week dates
 function getWeekDates(baseDate: Date) {
     const start = new Date(baseDate)
-    const day = start.getDay()
-    const diff = start.getDate() - day + (day == 0 ? -6 : 1) // align to Monday
-    // Simple fix for week alignment
     const dayOfWeek = start.getDay() || 7
     start.setDate(start.getDate() - dayOfWeek + 1)
     start.setHours(0, 0, 0, 0)
@@ -33,43 +27,47 @@ function getWeekDates(baseDate: Date) {
     return days
 }
 
-export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ date?: string, employeeId?: string }> }) {
+export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ date?: string; employeeId?: string }> }) {
     const { date, employeeId } = await searchParams
-    const baseDate = date ? new Date(date) : new Date()
+    const baseDate = date ? new Date(date + "T12:00:00") : new Date()
     const weekDays = getWeekDates(baseDate)
     const startDate = weekDays[0]
 
-    // Config for navigation
     const prevDate = new Date(startDate)
     prevDate.setDate(prevDate.getDate() - 7)
     const nextDate = new Date(startDate)
     nextDate.setDate(nextDate.getDate() + 7)
 
-    const prevLink = `/admin/schedule?date=${prevDate.toISOString().split('T')[0]}${employeeId ? `&employeeId=${employeeId}` : ''}`
-    const nextLink = `/admin/schedule?date=${nextDate.toISOString().split('T')[0]}${employeeId ? `&employeeId=${employeeId}` : ''}`
+    const prevLink = `/admin/schedule?date=${prevDate.toISOString().split("T")[0]}${employeeId ? `&employeeId=${employeeId}` : ""}`
+    const nextLink = `/admin/schedule?date=${nextDate.toISOString().split("T")[0]}${employeeId ? `&employeeId=${employeeId}` : ""}`
 
-    // Fetch Data
     let jobs = await getJobs()
     const selectors = await getScheduleSelectors()
     const availabilities = await getAllAvailabilities(startDate, weekDays[6])
 
-    // Filter by Employee if param exists
     if (employeeId) {
         jobs = jobs.filter((j: any) => j.employees?.some((e: any) => e.id === employeeId))
     }
 
+    const weekMeta = weekDays.map((d) => ({
+        key: localDateKey(d),
+        dayNum: d.getDate(),
+        weekdayShort: d.toLocaleDateString("fr-FR", { weekday: "short" }),
+        isToday: new Date().toDateString() === d.toDateString(),
+    }))
+
     return (
-        <div className="space-y-6 flex flex-col h-[calc(100vh-100px)]">
+        <div className="flex h-[calc(100vh-100px)] flex-col space-y-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 className="font-display text-3xl font-bold tracking-tight uppercase">Planning</h2>
                     <p className="text-xs text-muted-foreground">
-                        Couleurs = statut · Gris = en attente / demande client · Cyan = confirmé ou planifié · Ambre = en cours
+                        Grille 6h–21h · dates en heure locale · Couleurs = statut (gris = attente / demande)
                     </p>
                 </div>
-                <div className="flex gap-2 items-center">
+                <div className="flex items-center gap-2">
                     {employeeId && (
-                        <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900 px-3 py-1 rounded text-sm">
+                        <div className="flex items-center gap-2 rounded bg-yellow-100 px-3 py-1 text-sm dark:bg-yellow-900">
                             <span className="font-medium">Filtre actif</span>
                             <Link href="/admin/schedule">
                                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0 hover:bg-transparent">
@@ -82,43 +80,42 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                         clients={selectors.clients}
                         employees={selectors.employees}
                         services={selectors.services}
-                        prefillDate={new Date().toISOString().split('T')[0]}
+                        prefillDate={new Date().toISOString().split("T")[0]}
                     />
-                    <AvailabilityGenerator
-                        weekDays={weekDays}
-                        jobs={jobs}
-                        availabilities={availabilities}
-                    />
+                    <AvailabilityGenerator weekDays={weekDays} jobs={jobs} availabilities={availabilities} />
                 </div>
             </div>
 
-            <Tabs defaultValue="calendar" className="flex-1 flex flex-col">
+            <Tabs defaultValue="calendar" className="flex flex-1 flex-col">
                 <TabsList>
                     <TabsTrigger value="calendar">Vue Calendrier</TabsTrigger>
                     <TabsTrigger value="list">Vue Liste</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="calendar" className="flex-1 flex flex-col mt-4">
-                    {/* Calendar Navigation */}
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center border rounded-md bg-card">
+                <TabsContent value="calendar" className="mt-4 flex flex-1 flex-col">
+                    <div className="mb-2 flex items-center justify-between">
+                        <div className="flex items-center rounded-md border bg-card">
                             <Link href={prevLink}>
-                                <Button variant="ghost" size="icon"><ChevronLeft /></Button>
+                                <Button variant="ghost" size="icon">
+                                    <ChevronLeft />
+                                </Button>
                             </Link>
-                            <span className="px-4 font-medium text-sm w-48 text-center">
-                                {startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} - {weekDays[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+                            <span className="w-48 px-4 text-center text-sm font-medium">
+                                {startDate.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} -{" "}
+                                {weekDays[6].toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
                             </span>
                             <Link href={nextLink}>
-                                <Button variant="ghost" size="icon"><ChevronRight /></Button>
+                                <Button variant="ghost" size="icon">
+                                    <ChevronRight />
+                                </Button>
                             </Link>
                         </div>
                     </div>
 
-                    {/* The Grid */}
-                    <Card className="flex-1 flex flex-col overflow-hidden">
+                    <Card className="flex flex-1 flex-col overflow-hidden">
                         <div className="flex-1 overflow-y-auto">
-                            <ScheduleGrid
-                                weekDays={weekDays}
+                            <ScheduleGridClient
+                                weekMeta={weekMeta}
                                 jobs={jobs}
                                 selectors={selectors}
                                 availabilities={availabilities}
@@ -145,246 +142,5 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                 </TabsContent>
             </Tabs>
         </div>
-    )
-}
-
-
-function ScheduleGrid({ weekDays, jobs, selectors, availabilities }: any) {
-    const startHour = 8
-    const endHour = 19
-    const hours = []
-    for (let i = startHour; i <= endHour; i++) hours.push(i)
-
-    return (
-        <div className="w-full overflow-x-auto">
-            {/* Inner grid keeps a minimum width; on phone we scroll horizontally */}
-            <div className="min-w-[1000px] grid grid-cols-[60px_repeat(7,1fr)] bg-card rounded-xl border shadow-sm overflow-hidden">
-                {/* Header Row */}
-                <div className="sticky top-0 z-20 bg-muted/50 border-b p-2"></div>
-                {weekDays.map((day: Date, i: number) => {
-                    const isToday = new Date().toDateString() === day.toDateString()
-                    return (
-                        <div key={i} className={`sticky top-0 z-20 border-b border-l p-2 text-center font-medium backdrop-blur-sm ${isToday ? 'bg-primary/10 text-primary border-primary/20' : 'bg-muted/30'}`}>
-                            <div className="text-sm uppercase tracking-wide opacity-70">{day.toLocaleDateString('fr-FR', { weekday: 'short' })}</div>
-                            <div className="text-xl">{day.getDate()}</div>
-                        </div>
-                    )
-                })}
-
-                {/* Time Rows */}
-                {hours.map(hour => (
-                    <div key={hour} className="contents">
-                        {/* Time Label */}
-                        <div className="border-b border-r text-xs text-muted-foreground p-1 text-right pr-2 sticky left-0 bg-background -mt-[1px]">
-                            {hour}:00
-                        </div>
-
-                        {/* Day Cells */}
-                        {weekDays.map((day: Date, dayIndex: number) => {
-                        const dayStr = day.toISOString().split('T')[0]
-
-                        // 1. Find jobs STARTING in this hour (for rendering)
-                        const dayJobs = jobs.filter((job: any) => {
-                            const jobD = new Date(job.scheduledDate)
-                            const jobDateStr = jobD.toISOString().split('T')[0]
-                            return jobDateStr === dayStr && jobD.getHours() === hour
-                        })
-
-                        // 2. Find ALL jobs ACTIVE in this hour (for availability calculation)
-                        const activeJobs = jobs.filter((job: any) => {
-                            const jobD = new Date(job.scheduledDate)
-                            // Strict date check first
-                            const jobDateStr = jobD.toISOString().split('T')[0]
-                            if (jobDateStr !== dayStr) return false
-
-                            const jobStartH = jobD.getHours()
-                            const jobDurationMin = jobDurationMinutes(job.services || [])
-                            const jobEndH = jobStartH + (jobDurationMin / 60)
-
-                            // Check if job covers this hour slot (Left inclusive, Right exclusive)
-                            return (hour >= jobStartH && hour < jobEndH)
-                        })
-
-                        // 3. Check Total Availability (Unique Employees)
-                        const availableEmployees = new Set()
-                        availabilities?.forEach((a: any) => {
-                            if (!a.date) return
-                            const aD = new Date(a.date)
-                            const aDateStr = aD.toISOString().split('T')[0]
-                            if (aDateStr !== dayStr) return
-
-                            // Match time range
-                            const startH = parseInt(a.startTime.split(':')[0])
-                            const endH = parseInt(a.endTime.split(':')[0])
-
-                            if (hour >= startH && hour < endH) {
-                                availableEmployees.add(a.employeeId)
-                            }
-                        })
-
-                        const availableCount = availableEmployees.size // Total Capacity
-
-                        // 4. Calculate Stats
-                        // Busy unique employees in this slot
-                        const busyEmployeeCount = new Set(
-                            activeJobs.flatMap((j: any) =>
-                                j.employees?.map((e: any) => e.id) || (j.employeeId ? [j.employeeId] : [])
-                            )
-                        ).size
-
-                        // Remaining = Total Capacity - Busy
-                        const remaining = Math.max(0, availableCount - busyEmployeeCount)
-
-                        // 5. Layout Metrics
-                        // Columns = Max(Cards starting here, Total Capacity)
-                        // If we have 1 job starting, but 2 staff, we want 2 columns to show space.
-                        const columns = Math.max(dayJobs.length, availableCount || 1)
-                        const width = 100 / columns
-
-                        // Styles
-                        const bgClass = availableCount > 0
-                            ? "bg-emerald-50/50 dark:bg-emerald-950/20"
-                            : "bg-slate-50/10 dark:bg-slate-900/10"
-
-                        const availabilityStyle = availableCount > 0 ? { backgroundColor: 'rgba(0,0,0,0.05)' } : {}
-
-                        const dateStr = day.toISOString().split('T')[0]
-                        const timeStr = `${hour.toString().padStart(2, '0')}:00`
-
-                        return (
-                            <div key={`${dayIndex}-${hour}`} className="border-b border-l min-h-[60px] relative group transition-colors" style={availabilityStyle}>
-                                {/* Click to Add Trigger */}
-                                <div className="absolute inset-0 z-0 hover:bg-black/5 cursor-pointer">
-                                    <NewJobDialog
-                                        trigger={<div className="w-full h-full" />}
-                                        clients={selectors.clients}
-                                        employees={selectors.employees}
-                                        services={selectors.services}
-                                        prefillDate={dateStr}
-                                        prefillTime={timeStr}
-                                    />
-                                </div>
-
-                                {/* Jobs */}
-                                <div className="relative z-10 pointer-events-none p-1 h-full w-full">
-                                    {dayJobs.map((job: any, idx: number) => {
-                                        const left = idx * width
-                                        return (
-                                            <div key={job.id} className="pointer-events-auto absolute top-0 bottom-0" style={{
-                                                left: `${left}%`,
-                                                width: `${width}%`,
-                                            }}>
-                                                <JobCard job={job} selectors={selectors} />
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-
-                                {/* Availability Count Indicator (Bottom Right - Overlay) */}
-                                {availableCount > 0 && (
-                                    <div className="absolute bottom-1 right-1 z-50 pointer-events-none">
-                                        <span className="bg-white/90 dark:bg-slate-950/90 text-xs font-bold px-1.5 py-0.5 rounded shadow-sm border text-emerald-600">
-                                            {remaining} dispo
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        )
-                        })}
-                        </div>
-                    ))}
-            </div>
-        </div>
-    )
-}
-
-function JobCard({ job, selectors }: { job: any; selectors: any }) {
-    const durationMin = jobDurationMinutes(job.services || [])
-    const heightPx = Math.max(30, (durationMin / 60) * 60)
-    const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
-
-    return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <div
-                    className={`rounded-lg p-1.5 text-xs overflow-hidden cursor-pointer transition-all absolute w-full z-10 hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""}`}
-                    style={{
-                        height: `${heightPx}px`,
-                        minHeight: "30px",
-                    }}
-                >
-                    <div className="font-bold truncate">{job.client?.user?.name}</div>
-                    <div className="truncate text-[10px] uppercase tracking-wide opacity-90">
-                        {job.vehicle?.type ? `${job.vehicle.type}` : job.services?.[0]?.service?.name}
-                    </div>
-
-                    {/* Employee Indicators */}
-                    <div className="absolute bottom-1 right-1 flex -space-x-1">
-                        {(() => {
-                            // Combine M:N employees and fallback legacy employee
-                            const employees = job.employees && job.employees.length > 0
-                                ? job.employees
-                                : (job.employee ? [job.employee] : [])
-
-                            // Take max 3 to avoid overflow
-                            const displayEmps = employees.slice(0, 3)
-
-                            return displayEmps.map((emp: any) => (
-                                <div key={emp.id} className="h-4 w-4 rounded-full bg-white text-black text-[8px] flex items-center justify-center font-bold ring-1 ring-white/50" title={emp.user?.name}>
-                                    {emp.user?.name?.substring(0, 2).toUpperCase()}
-                                </div>
-                            ))
-                        })()}
-                        {(job.employees?.length || 0) > 3 && (
-                            <div className="h-4 w-4 rounded-full bg-black/50 text-white text-[8px] flex items-center justify-center font-bold ring-1 ring-white/50">
-                                +{(job.employees?.length || 0) - 3}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0 pointer-events-auto rounded-xl">
-                <div className="space-y-4 p-4">
-                    <div className="flex items-start justify-between gap-2">
-                        <div>
-                            <h3 className="text-lg font-semibold">Détails du job</h3>
-                            <p className="text-xs text-muted-foreground">Couleur = statut (non modifiable)</p>
-                        </div>
-                        <EditJobDialog
-                            job={job}
-                            clients={selectors.clients}
-                            employees={selectors.employees}
-                            services={selectors.services}
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <div className="flex items-center gap-2 text-sm">
-                            <CalendarIcon size={16} className="text-muted-foreground" />
-                            {new Date(job.scheduledDate).toLocaleString('fr-FR')}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <Clock size={16} className="text-muted-foreground" />
-                            {durationMin} min (estimé, extras inclus)
-                        </div>
-                        <div className="text-sm">
-                            Client: <span className="font-medium">{job.client?.user?.name}</span>
-                        </div>
-                    </div>
-
-                    <div className="text-sm space-y-1">
-                        <span className="font-semibold text-muted-foreground">Services:</span>
-                        <div className="flex flex-wrap gap-1">
-                            {job.services?.map((s: any) => (
-                                <span key={s.serviceId} className="bg-secondary px-2 py-0.5 rounded text-[10px]">
-                                    {s.service.name}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                </div>
-            </PopoverContent>
-        </Popover>
     )
 }
