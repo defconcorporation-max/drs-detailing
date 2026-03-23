@@ -1,96 +1,66 @@
-
 import prisma from "@/lib/db"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, User, Car, Calendar, MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { cookies } from "next/headers"
+import { notFound, redirect } from "next/navigation"
+import { getActiveTimeLog } from "@/lib/actions/time"
+import { getJobInspections } from "@/lib/actions/inspections"
+import { getInventoryItems, getJobProductUsages } from "@/lib/actions/inventory"
+import { JobExecution } from "@/components/employee/JobExecution"
 
 export default async function JobDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
 
+    // 1. Get Employee ID from cookie
+    const cookieStore = await cookies()
+    const employeeUserId = cookieStore.get("drs_employee_session")?.value
+
+    if (!employeeUserId) {
+        redirect("/employee/login")
+    }
+
+    // 2. Fetch Employee Profile ID
+    const employee = await prisma.employeeProfile.findUnique({
+        where: { userId: employeeUserId },
+        include: { badges: { include: { badge: true } } }
+    })
+
+    if (!employee) {
+        return <div>Profil employé introuvable. Contactez l'admin.</div>
+    }
+
+    // 3. Fetch Job with full includes
     const job = await prisma.job.findUnique({
         where: { id },
         include: {
-            // `job.client` est déjà un `ClientProfile` (pas besoin de `clientProfile` dans l'include)
             client: { include: { user: true } },
             vehicle: true,
-            services: { include: { service: true } }
+            services: { 
+                include: { service: true },
+                orderBy: { service: { name: 'asc' } }
+            }
         }
     })
 
-    if (!job) return <div>Job non trouvé</div>
+    if (!job) return notFound()
+
+    // 4. Get active time log, inspections, inventory, and usages
+    const [activeTimeLog, inspections, inventoryItems, productUsages] = await Promise.all([
+        getActiveTimeLog(id, employee.id),
+        getJobInspections(id),
+        getInventoryItems(),
+        getJobProductUsages(id)
+    ])
 
     return (
-        <div className="space-y-6 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Détails du Job</h2>
-                <Badge className="text-lg">{job.status}</Badge>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <User size={20} />
-                            Client
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="font-semibold text-lg">{job.client.user.name}</div>
-                        <div className="text-muted-foreground">{job.client.user.email}</div>
-                        <div className="text-muted-foreground">{job.client.user.phone}</div>
-                        {job.client.address && (
-                            <div className="flex items-start gap-2 pt-2 text-sm">
-                                <MapPin size={16} className="mt-1" />
-                                <span>{job.client.address}</span>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Car size={20} />
-                            Véhicule
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div className="font-semibold text-lg">{job.vehicle?.make} {job.vehicle?.model}</div>
-                        <div className="flex gap-2">
-                            <Badge variant="secondary">{job.vehicle?.type}</Badge>
-                            <Badge variant="outline">{job.vehicle?.year}</Badge>
-                        </div>
-                        <div className="text-sm">Couleur: {job.vehicle?.color}</div>
-                        <div className="text-sm">Plaque: {job.vehicle?.licensePlate || "N/A"}</div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Services à réaliser</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {job.services.map((js) => (
-                            <div key={js.serviceId} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                                <div>
-                                    <div className="font-medium">{js.service.name}</div>
-                                    <div className="text-sm text-muted-foreground">{js.service.description}</div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <span className="text-sm text-muted-foreground">{js.service.durationMin} min</span>
-                                    <Button size="sm" variant="outline" className="gap-2">
-                                        <CheckCircle2 size={16} />
-                                        Terminé
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="p-4 md:p-8">
+            <JobExecution 
+                job={job} 
+                activeTimeLog={activeTimeLog} 
+                inspections={inspections}
+                inventoryItems={inventoryItems}
+                productUsages={productUsages}
+                employeeProfile={employee}
+                employeeId={employee.id} 
+            />
         </div>
     )
 }

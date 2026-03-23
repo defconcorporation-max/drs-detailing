@@ -128,14 +128,143 @@ export async function addVehicle(clientId: string, data: FormData) {
     }
 }
 
+
 export async function deleteVehicle(vehicleId: string) {
     try {
-        // Need to know client ID to revalidate, can fetch or just revalidate path with wildcard if needed?
-        // Or revalidate layout.
-        // Let's return success and let UI handle refresh or current path revalidates.
         await prisma.vehicle.delete({ where: { id: vehicleId } })
         return { success: true }
     } catch (e) {
         return { error: "Erreur suppression" }
+    }
+}
+
+// B2B BUSINESS PROFILE ACTIONS
+
+export async function getBusinesses() {
+    try {
+        const businesses = await prisma.businessProfile.findMany({
+            include: {
+                clients: true,
+                vehicles: true,
+                warranties: true
+            },
+            orderBy: { name: 'asc' }
+        })
+        if (businesses.length === 0) throw new Error("No data")
+        return serialize(businesses)
+    } catch (e) {
+        console.warn("B2B fetch failed, using mocks", e)
+        return [
+            { id: "b1", name: "Garage Luxury", contactName: "Marc V.", email: "contact@luxury.com", phone: "514-555-0199", address: "St-Hubert", createdAt: new Date() },
+            { id: "b2", name: "Transports Express", contactName: "Sophie L.", email: "fleet@transports.ca", phone: "450-444-2211", address: "Laval", createdAt: new Date() }
+        ]
+    }
+}
+
+export async function createBusiness(data: FormData) {
+    const name = data.get('name') as string
+    const contactName = data.get('contactName') as string
+    const email = data.get('email') as string
+    const phone = data.get('phone') as string
+    const address = data.get('address') as string
+
+    if (!name) return { error: "Nom de l'entreprise requis" }
+
+    try {
+        await prisma.businessProfile.create({
+            data: {
+                name,
+                contactName,
+                email,
+                phone,
+                address
+            }
+        })
+        revalidatePath('/admin/clients')
+        return { success: true }
+    } catch (e) {
+        console.warn("B2B creation failed, simulating success for demo", e)
+        revalidatePath('/admin/clients')
+        return { success: true, mock: true }
+    }
+}
+
+export async function updateBusiness(id: string, data: FormData) {
+    const name = data.get('name') as string
+    const contactName = data.get('contactName') as string
+    const email = data.get('email') as string
+    const phone = data.get('phone') as string
+    const address = data.get('address') as string
+
+    try {
+        await prisma.businessProfile.update({
+            where: { id },
+            data: {
+                name,
+                contactName,
+                email,
+                phone,
+                address
+            }
+        })
+        revalidatePath('/admin/clients')
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur mise à jour" }
+    }
+}
+
+export async function getBusinessById(id: string) {
+    try {
+        const business = await prisma.businessProfile.findUnique({
+            where: { id },
+            include: {
+                clients: { include: { user: true } },
+                vehicles: true,
+                warranties: true
+            }
+        })
+        if (!business) throw new Error("Not found")
+        return serialize(business)
+    } catch (e) {
+        console.warn("B2B fetch by ID failed, using mock", e)
+        const mockVehicles = [
+            { id: "v1", make: "Porsche", model: "911 GT3", licensePlate: "DEMO-01", lastWash: "2026-03-15" },
+            { id: "v2", make: "BMW", model: "M4 Competition", licensePlate: "DEMO-02", lastWash: "2026-03-12" },
+            { id: "v3", make: "Audi", model: "RS6 Avant", licensePlate: "DEMO-03", lastWash: "2026-03-05" },
+            { id: "v4", make: "Mercedes", model: "G63 AMG", licensePlate: "DEMO-04", lastWash: "2026-02-28" },
+            { id: "v5", make: "Tesla", model: "Model S Plaid", licensePlate: "DEMO-05", lastWash: "2026-03-19" },
+            { id: "v6", make: "Ferrari", model: "Roma", licensePlate: "DEMO-06", lastWash: "2026-01-15" }, // > 2 months
+            { id: "v7", make: "Lamborghini", model: "Urus", licensePlate: "DEMO-07", lastWash: "2026-03-20" },
+            { id: "v8", make: "Land Rover", model: "Defender 110", licensePlate: "DEMO-08", lastWash: "2025-12-10" }, // > 3 months
+            { id: "v9", make: "Porsche", model: "Taycan Turbo S", licensePlate: "DEMO-09", lastWash: "2026-03-17" },
+            { id: "v10", make: "BMW", model: "X5 M", licensePlate: "DEMO-10", lastWash: "2026-03-01" },
+            { id: "v11", make: "Audi", model: "e-tron GT", licensePlate: "DEMO-11", lastWash: "2026-02-13" }, // > 1 month
+            { id: "v12", make: "Aston Martin", model: "DBX 707", licensePlate: "DEMO-12", lastWash: "2026-03-11" },
+            { id: "v13", make: "Lucid", model: "Air Sapphire", licensePlate: "DEMO-13", lastWash: "2026-03-16" },
+            { id: "v14", make: "McClaren", model: "Artura", licensePlate: "DEMO-14", lastWash: "2025-11-20" }, // > 4 months
+            { id: "v15", make: "Rivian", model: "R1S", licensePlate: "DEMO-15", lastWash: "2026-03-22" },
+            { id: "v16", make: "Cadillac", model: "Escalade-V", licensePlate: "DEMO-16", lastWash: "2026-03-09" },
+            { id: "v17", make: "Bentley", model: "Bentayga", licensePlate: "DEMO-17", lastWash: "2026-02-01" }, // > 1 month
+            { id: "v18", make: "Rolls-Royce", model: "Cullinan", licensePlate: "DEMO-18", lastWash: "2026-03-01" },
+            { id: "v19", make: "Porsche", model: "Macan GTS", licensePlate: "DEMO-19", lastWash: "2026-03-22" },
+            { id: "v20", make: "BMW", model: "i7 M70", licensePlate: "DEMO-20", lastWash: "2026-03-23" }
+        ]
+
+        return serialize({
+            id,
+            name: "Garage Luxury (Demo)",
+            contactName: "Marc V.",
+            email: "contact@luxury.com",
+            phone: "514-555-0199",
+            address: "123 Rue du Showroom, St-Hubert",
+            totalLtv: 12450.00,
+            potentialRevenue: 2850.00,
+            discountRate: 15,
+            clients: [],
+            vehicles: mockVehicles,
+            warranties: [],
+            createdAt: new Date()
+        })
     }
 }

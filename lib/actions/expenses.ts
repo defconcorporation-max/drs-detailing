@@ -1,38 +1,56 @@
 "use server"
 
 import prisma from "@/lib/db"
-import { serialize } from "@/lib/utils"
 import { revalidatePath } from "next/cache"
 
-export async function getExpenses() {
-    const expenses = await prisma.expense.findMany({
-        orderBy: { date: 'desc' }
-    })
-    return serialize(expenses)
-}
-
-export async function createExpense(data: FormData) {
-    const category = data.get('category') as string
-    const description = data.get('description') as string
-    const amount = parseFloat(data.get('amount') as string)
-    const dateStr = data.get('date') as string
-
-    if (!category || !amount || !dateStr) {
-        return { error: "Données manquantes" }
-    }
+/** 
+ * Mock OCR processing for now. 
+ * In a real-world scenario, we would use a service like Tesseract.js, 
+ * Google Cloud Vision, or AWS Textract to parse the image.
+ */
+export async function processExpenseOCR(formData: FormData) {
+    const file = formData.get("receipt") as File
+    if (!file) return { error: "Aucun fichier reçu" }
 
     try {
-        await prisma.expense.create({
+        // En attendant une vraie intégration API, on simule une réponse.
+        // On pourrait aussi extraire des infos basiques si on avait un moteur JS local.
+        
+        // Simulation de délai de traitement
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        const mockData = {
+            amount: Math.floor(Math.random() * 150) + 20, // Montant aléatoire
+            category: "SUPPLIES",
+            description: `Achat ${file.name} (Détection auto)`,
+            date: new Date()
+        }
+
+        return { success: true, data: mockData }
+    } catch (e) {
+        return { error: "Erreur lors du traitement OCR" }
+    }
+}
+
+export async function createExpense(data: { amount: number, category: string, description: string, date: Date }) {
+    try {
+        const expense = await prisma.expense.create({
             data: {
-                category,
-                amount,
-                description,
-                date: new Date(dateStr)
+                amount: data.amount,
+                category: data.category,
+                description: data.description,
+                date: data.date
             }
         })
         revalidatePath('/admin/accounting')
-        return { success: true }
+        return { success: true, expense }
     } catch (e) {
         return { error: "Erreur création dépense" }
     }
+}
+
+export async function getExpenses() {
+    return await prisma.expense.findMany({
+        orderBy: { date: 'desc' }
+    })
 }

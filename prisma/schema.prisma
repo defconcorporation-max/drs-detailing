@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "./fresh-client"
 }
 
 datasource db {
@@ -37,11 +38,23 @@ model ClientProfile {
   longitude    Float?
   
   loyaltyPoints Int @default(0)
+  
+  // B2B Relation
+  warranties      Warranty[]
+  waitlistEntries WaitlistEntry[]
+  businessId   String?
+  business     BusinessProfile? @relation(fields: [businessId], references: [id])
+
+  // Referral System
   referralCode  String @unique @default(uuid())
   referredById  String?
-  accessKey     String? @unique @default(uuid()) // "Magic Link" token
   referredBy    ClientProfile? @relation("Referrals", fields: [referredById], references: [id])
   referrals     ClientProfile[] @relation("Referrals")
+  accessKey     String? @unique @default(uuid()) // "Magic Link" token for Live Status view
+
+  npsScore           Int?
+  lastMarketingSent  DateTime?
+  lastBookingDate    DateTime?
 
   vehicles     Vehicle[]
   jobs         Job[]
@@ -56,8 +69,33 @@ model EmployeeProfile {
   availabilities Availability[]
   assignedJobs  Job[]
   
+  // Gamification
+  experience    Int @default(0)
+  level         Int @default(1)
+  badges        EmployeeBadge[]
+
   // New Many-to-Many relation
   teamJobs      Job[] @relation("JobTeam")
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String   // Lucide icon name or emoji
+  criteria    String?  // Description of how to earn it
+  
+  employees   EmployeeBadge[]
+}
+
+model EmployeeBadge {
+  employeeId String
+  employee   EmployeeProfile @relation(fields: [employeeId], references: [id])
+  badgeId    String
+  badge      Badge @relation(fields: [badgeId], references: [id])
+  earnedAt   DateTime @default(now())
+
+  @@id([employeeId, badgeId])
 }
 
 model Availability {
@@ -87,7 +125,11 @@ model Vehicle {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  businessId String?
+  business   BusinessProfile? @relation(fields: [businessId], references: [id])
+
   jobs      Job[]
+  warranties Warranty[]
 }
 
 model Service {
@@ -99,6 +141,7 @@ model Service {
 
   extras ServiceExtra[]
   jobs   JobService[]
+  warranties Warranty[]
 }
 
 /// Options par service (VUS, pickup, dégâts majeurs, etc.) — supplément prix / durée
@@ -138,12 +181,12 @@ model Job {
   totalPrice Float?
   notes      String?
 
+  productUsages ProductUsage[]
+  inspections   Inspection[]
+  timeLogs      TimeLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // NEW RELATIONS
-  inspections Inspection[]
-  timeLogs    TimeLog[]
 }
 
 model JobService {
@@ -154,6 +197,7 @@ model JobService {
 
   /// IDs des ServiceExtra choisis pour cette ligne (JSON array de strings)
   selectedExtraIds Json?
+  isDone           Boolean @default(false)
 
   @@id([jobId, serviceId])
 }
@@ -165,8 +209,23 @@ model InventoryItem {
   unit      String   // "Liters", "Bottles"
   minThreshold Float @default(10)
   type      String   // "PRODUCT", "EQUIPMENT"
+  sdsUrl    String?  // Link to Safety Data Sheet (PDF)
   
   updatedAt DateTime @updatedAt
+  usages    ProductUsage[]
+}
+
+model ProductUsage {
+  id        String   @id @default(uuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id])
+  
+  quantityUsed Float
+  unit         String
+  createdAt    DateTime @default(now())
 }
 
 model Expense {
@@ -212,14 +271,71 @@ model TimeLog {
   job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   
   employeeId String
-  // Relation to EmployeeProfile if possible, or just ID if loose coupling preferred.
-  // Let's allow loose coupling for now to avoid circular mess if employee deleted, but ideally should be related.
-  // Actually, better to relate it for reporting.
-  // We need to update EmployeeProfile to add relation 'timeLogs TimeLog[]' if we do this.
-  // For simplicity MVP, let's keep it loose or add relation below.
   
   startTime  DateTime @default(now())
   endTime    DateTime? 
   
   durationMin Int?    // Calculated on completion
+}
+
+model BusinessProfile {
+  id          String   @id @default(uuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  
+  clients     ClientProfile[]
+  vehicles    Vehicle[]
+  warranties  Warranty[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GiftCard {
+  id            String   @id @default(uuid())
+  code          String   @unique
+  initialAmount Float
+  currentAmount Float
+  expiryDate    DateTime?
+  
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model WaitlistEntry {
+  id            String   @id @default(uuid())
+  clientId      String
+  client        ClientProfile @relation(fields: [clientId], references: [id])
+  
+  preferredDate DateTime?
+  status        String   @default("WAITING") // WAITING, NOTIFIED, BOOKED, EXPIRED
+  
+  createdAt     DateTime @default(now())
+}
+
+model Warranty {
+  id            String   @id @default(uuid())
+  clientId      String
+  client        ClientProfile @relation(fields: [clientId], references: [id])
+  
+  vehicleId     String
+  vehicle       Vehicle       @relation(fields: [vehicleId], references: [id])
+  
+  serviceId     String
+  service       Service       @relation(fields: [serviceId], references: [id])
+
+  businessId    String?
+  business      BusinessProfile? @relation(fields: [businessId], references: [id])
+
+  certNumber    String   @unique
+  issueDate     DateTime @default(now())
+  expiryDate    DateTime
+  
+  status        String   @default("ACTIVE") // ACTIVE, EXPIRED, VOID
+  
+  createdAt     DateTime @default(now())
 }

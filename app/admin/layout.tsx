@@ -1,3 +1,6 @@
+/** Évite le pré-rendu au build (Prisma / DB pas toujours alignée en CI locale). */
+export const dynamic = "force-dynamic"
+
 import { AdminSidebar } from "@/components/admin/Sidebar"
 import { MobileAdminNav } from "@/components/admin/MobileNav"
 import { AppChromeBar } from "@/components/showroom/AppChromeBar"

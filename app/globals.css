@@ -287,7 +287,7 @@ html:not(.dark) .marketing-backdrop::before {
 
 /* Surface premium réutilisable partout (cards, modals, panneaux) */
 .premium-surface {
-  @apply relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/92 to-card/65 shadow-xl backdrop-blur-xl;
+  @apply overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card/92 to-card/65 shadow-xl backdrop-blur-xl;
   box-shadow:
     0 18px 60px -30px oklch(0.45 0.08 220 / 0.35),
     inset 0 1px 0 oklch(1 0 0 / 0.08);

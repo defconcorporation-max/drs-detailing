@@ -48,3 +48,8 @@ prisma/dev.db
 next-env.d.ts
 
 /app/generated/prisma
+
+# local scratch / generated prisma copies (use `prisma generate` on CI)
+/tmp/
+/prisma/generated-client/
+/prisma/fresh-client/

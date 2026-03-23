@@ -196,3 +196,30 @@ export async function deleteJob(id: string) {
     revalidatePath('/employee/calendar')
     return { success: true }
 }
+
+export async function toggleJobServiceDone(jobId: string, serviceId: string, isDone: boolean) {
+    try {
+        await prisma.jobService.update({
+            where: { jobId_serviceId: { jobId, serviceId } },
+            data: { isDone },
+        })
+        revalidatePath(`/employee/job/${jobId}`)
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur mise à jour service" }
+    }
+}
+
+export async function updateJobStatus(id: string, status: string) {
+    try {
+        await prisma.job.update({
+            where: { id },
+            data: { status }
+        })
+        revalidatePath(`/employee/job/${id}`)
+        revalidatePath('/admin/schedule')
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur mise à jour statut" }
+    }
+}
