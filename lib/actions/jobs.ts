@@ -185,6 +185,42 @@ export async function updateJob(id: string, data: FormData) {
     return { success: true }
 }
 
+/** Replacer un job sur le calendrier (date/heure locale) sans repasser par le formulaire complet. */
+export async function rescheduleJob(
+    jobId: string,
+    dateKey: string,
+    hour: number,
+    options?: { minute?: number }
+) {
+    const minute = Math.max(0, Math.min(59, options?.minute ?? 0))
+    const parts = dateKey.split("-").map((x) => parseInt(x, 10))
+    if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) {
+        return { error: "Date invalide" }
+    }
+    const [y, mo, d] = parts
+    if (hour < 0 || hour > 23) return { error: "Heure invalide" }
+
+    const scheduledDate = new Date(y, mo - 1, d, hour, minute, 0, 0)
+    if (Number.isNaN(scheduledDate.getTime())) {
+        return { error: "Date invalide" }
+    }
+
+    try {
+        await prisma.job.update({
+            where: { id: jobId },
+            data: { scheduledDate },
+        })
+    } catch (e) {
+        console.error(e)
+        return { error: "Erreur replanification" }
+    }
+
+    revalidatePath("/admin/schedule")
+    revalidatePath("/employee")
+    revalidatePath("/employee/calendar")
+    return { success: true }
+}
+
 export async function deleteJob(id: string) {
     try {
         await prisma.job.delete({ where: { id } })

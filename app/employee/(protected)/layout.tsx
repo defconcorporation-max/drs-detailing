@@ -5,6 +5,9 @@ import { cookies } from "next/headers"
 import prisma from "@/lib/db"
 import { redirect } from "next/navigation"
 import { canAccessEmployeePortal } from "@/lib/employee-portal"
+import { DbSyncError } from "@/components/system/DbSyncError"
+
+export const dynamic = "force-dynamic"
 
 export default async function EmployeeLayout({
     children,
@@ -18,10 +21,20 @@ export default async function EmployeeLayout({
         redirect("/employee/login")
     }
 
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { employeeProfile: true },
-    })
+    let user
+    try {
+        user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { employeeProfile: true },
+        })
+    } catch (e) {
+        console.error("[employee/layout]", e)
+        return (
+            <div className="flex min-h-screen items-center justify-center p-6">
+                <DbSyncError details={e instanceof Error ? e.message : String(e)} />
+            </div>
+        )
+    }
 
     if (!user || !canAccessEmployeePortal(user.role)) {
         redirect("/employee/login")

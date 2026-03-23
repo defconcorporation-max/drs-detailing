@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { addDays, startOfWeek, format, isSameDay, parseISO, startOfDay, getDay } from "date-fns"
+import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { addDays, startOfWeek, format, isSameDay } from "date-fns"
 import { fr } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock } from "lucide-react"
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, GripVertical } from "lucide-react"
+import { rescheduleJob } from "@/lib/actions/jobs"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -44,8 +47,32 @@ const getHeight = (startStr: string, endStr: string) => {
     return (duration / TOTAL_MINUTES) * 100
 }
 
+const DRAG_MIME = "application/x-drs-job"
+
+/** Position Y dans la colonne → heure:minute locales, cran 15 min. */
+function timeFromDropY(clientY: number, rect: DOMRect) {
+    const y = Math.max(0, Math.min(rect.height, clientY - rect.top))
+    const pct = rect.height > 0 ? y / rect.height : 0
+    const minutesFromStart = pct * TOTAL_MINUTES
+    const rawTotal = START_HOUR * 60 + minutesFromStart
+    const maxTotal = END_HOUR * 60 - 1
+    const clamped = Math.max(START_HOUR * 60, Math.min(maxTotal, rawTotal))
+    const snapped = Math.round(clamped / 15) * 15
+    const hour = Math.floor(snapped / 60)
+    const minute = snapped % 60
+    return { hour, minute }
+}
+
 export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabilities: any[] }) {
+    const router = useRouter()
     const [currentDate, setCurrentDate] = useState(new Date())
+    const [dropTargetDayIdx, setDropTargetDayIdx] = useState<number | null>(null)
+
+    useEffect(() => {
+        const end = () => setDropTargetDayIdx(null)
+        window.addEventListener("dragend", end)
+        return () => window.removeEventListener("dragend", end)
+    }, [])
 
     // Week Range
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }) // Monday
@@ -118,8 +145,44 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                     </span>
                                 </div>
 
-                                {/* Timeline Area */}
-                                <div className="relative flex-1 bg-background/50">
+                                {/* Timeline Area — min-height pour zone de drop même sans contenu */}
+                                <div
+                                    className={cn(
+                                        "relative min-h-[560px] flex-1 bg-background/50 transition-colors",
+                                        dropTargetDayIdx === i && "bg-primary/10 ring-1 ring-inset ring-primary/30"
+                                    )}
+                                    onDragOver={(e) => {
+                                        e.preventDefault()
+                                        e.dataTransfer.dropEffect = "move"
+                                    }}
+                                    onDragEnter={() => setDropTargetDayIdx(i)}
+                                    onDragLeave={(e) => {
+                                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                            setDropTargetDayIdx(null)
+                                        }
+                                    }}
+                                    onDrop={async (e) => {
+                                        e.preventDefault()
+                                        setDropTargetDayIdx(null)
+                                        const raw = e.dataTransfer.getData(DRAG_MIME)
+                                        if (!raw) return
+                                        let jobId: string
+                                        try {
+                                            jobId = JSON.parse(raw).jobId
+                                        } catch {
+                                            return
+                                        }
+                                        if (!jobId) return
+                                        const dateKey = format(day, "yyyy-MM-dd")
+                                        const { hour, minute } = timeFromDropY(e.clientY, e.currentTarget.getBoundingClientRect())
+                                        const res = await rescheduleJob(jobId, dateKey, hour, { minute })
+                                        if (res.error) toast.error(res.error)
+                                        else {
+                                            toast.success("Rendez-vous déplacé")
+                                            router.refresh()
+                                        }
+                                    }}
+                                >
                                     {/* Grid Lines */}
                                     {Array.from({ length: END_HOUR - START_HOUR }).map((_, idx) => (
                                         <div key={idx} className="absolute w-full border-t border-dashed border-muted/30 pointer-events-none" style={{ top: `${(idx / (END_HOUR - START_HOUR)) * 100}%` }} />
@@ -170,27 +233,37 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                         const endM = endTotalMin % 60
                                         const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
 
+                                        const dragPayload = JSON.stringify({ jobId: job.id })
+
                                         return (
                                             <Dialog key={job.id}>
                                                 <DialogTrigger asChild>
                                                     <div
-                                                        className={`absolute left-[2.5%] z-10 flex w-[95%] cursor-pointer flex-col overflow-hidden rounded-lg border p-1.5 text-xs shadow-md transition-transform hover:scale-[1.02] ${box} ${text} ${opacity ?? ""}`}
+                                                        draggable
+                                                        onDragStart={(ev) => {
+                                                            ev.dataTransfer.setData(DRAG_MIME, dragPayload)
+                                                            ev.dataTransfer.effectAllowed = "move"
+                                                        }}
+                                                        className={`absolute left-[2.5%] z-10 flex w-[95%] cursor-grab flex-col overflow-hidden rounded-lg border p-1.5 pl-5 text-xs shadow-md transition-transform hover:scale-[1.02] active:cursor-grabbing ${box} ${text} ${opacity ?? ""}`}
                                                         style={{
                                                             top: `${topPct}%`,
                                                             height: `${heightPct}%`,
                                                         }}
-                                                        title={[job.client.user.name, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}
+                                                        title={`Glisser pour déplacer — ${[job.client?.user?.name, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
                                                     >
+                                                        <div className="pointer-events-none absolute left-0.5 top-1 opacity-40">
+                                                            <GripVertical className="size-3.5" aria-hidden />
+                                                        </div>
                                                         {compactCard ? (
                                                             <>
-                                                                <div className="truncate font-bold leading-tight">{job.client.user.name}</div>
+                                                                <div className="truncate font-bold leading-tight">{job.client?.user?.name ?? "—"}</div>
                                                                 <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
                                                                     {[vehicleStr, servicesStr || "Sans service", assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
                                                                 </div>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <div className="shrink-0 truncate font-bold leading-tight">{job.client.user.name}</div>
+                                                                <div className="shrink-0 truncate font-bold leading-tight">{job.client?.user?.name ?? "—"}</div>
                                                                 {vehicleStr ? (
                                                                     <div className="shrink-0 truncate text-[10px] opacity-90" title={vehicleStr}>
                                                                         {vehicleStr}
@@ -225,7 +298,7 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                                             </div>
                                                         </div>
                                                         <div className="bg-muted p-4 rounded-lg">
-                                                            <div className="font-bold text-lg mb-1">{job.client.user.name}</div>
+                                                            <div className="font-bold text-lg mb-1">{job.client?.user?.name ?? "—"}</div>
                                                             <div className="text-muted-foreground text-sm flex items-center gap-2">
                                                                 <MapPin size={14} /> {job.client.address || "Aucune adresse"}
                                                             </div>

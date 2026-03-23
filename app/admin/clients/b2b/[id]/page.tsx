@@ -31,8 +31,9 @@ import {
 import { BusinessActions } from "@/components/admin/BusinessActions"
 import { SingleVehicleAction } from "@/components/admin/SingleVehicleAction"
 
-export default async function BusinessDetailPage({ params }: { params: { id: string } }) {
-    const business = await getBusinessById(params.id) as any
+export default async function BusinessDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params
+    const business = await getBusinessById(id) as any
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">

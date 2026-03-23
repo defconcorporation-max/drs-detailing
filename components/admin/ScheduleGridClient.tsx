@@ -1,21 +1,23 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
-import Link from "next/link"
+import { useState, useMemo, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { EditJobDialog } from "@/components/admin/EditJobDialog"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
 import { jobDurationMinutes } from "@/lib/job-metrics"
 import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
-import { localDateKey, localHour } from "@/lib/date-local"
+import { localDateKey, localHour, localMinute } from "@/lib/date-local"
 import {
     formatJobPrice,
     jobAssigneesNames,
     jobServicesSummary,
     jobVehicleSummary,
 } from "@/lib/job-display"
-import { Calendar as CalendarIcon, Clock, Car, Users, Receipt } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical } from "lucide-react"
+import { rescheduleJob } from "@/lib/actions/jobs"
 
 export type WeekColumnMeta = {
     key: string
@@ -34,15 +36,25 @@ type Props = {
 const START_HOUR = 6
 const END_HOUR = 21
 
+const DRAG_MIME = "application/x-drs-job"
+
 export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }: Props) {
+    const router = useRouter()
     const [slotOpen, setSlotOpen] = useState(false)
     const [prefillDate, setPrefillDate] = useState("")
     const [prefillTime, setPrefillTime] = useState("09:00")
+    const [dropTargetKey, setDropTargetKey] = useState<string | null>(null)
 
     const openSlot = useCallback((dateKey: string, hour: number) => {
         setPrefillDate(dateKey)
         setPrefillTime(`${String(hour).padStart(2, "0")}:00`)
         setSlotOpen(true)
+    }, [])
+
+    useEffect(() => {
+        const end = () => setDropTargetKey(null)
+        window.addEventListener("dragend", end)
+        return () => window.removeEventListener("dragend", end)
     }, [])
 
     const hours = useMemo(() => {
@@ -117,11 +129,48 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
                                 const availabilityStyle =
                                     availableCount > 0 ? { backgroundColor: "rgba(0,0,0,0.04)" } : undefined
 
+                                const cellKey = `${dayStr}-${hour}`
+
                                 return (
                                     <div
                                         key={`${dayIndex}-${hour}`}
-                                        className="group relative min-h-[52px] border-b border-l transition-colors"
+                                        className={`group relative min-h-[52px] border-b border-l transition-colors ${
+                                            dropTargetKey === cellKey ? "bg-primary/15 ring-1 ring-inset ring-primary/40" : ""
+                                        }`}
                                         style={availabilityStyle}
+                                        onDragOver={(e) => {
+                                            e.preventDefault()
+                                            e.dataTransfer.dropEffect = "move"
+                                        }}
+                                        onDragEnter={() => setDropTargetKey(cellKey)}
+                                        onDragLeave={(e) => {
+                                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                                setDropTargetKey(null)
+                                            }
+                                        }}
+                                        onDrop={async (e) => {
+                                            e.preventDefault()
+                                            setDropTargetKey(null)
+                                            const raw = e.dataTransfer.getData(DRAG_MIME)
+                                            if (!raw) return
+                                            try {
+                                                const { jobId, minute } = JSON.parse(raw) as {
+                                                    jobId: string
+                                                    minute?: number
+                                                }
+                                                if (!jobId) return
+                                                const res = await rescheduleJob(jobId, dayStr, hour, {
+                                                    minute: typeof minute === "number" ? minute : 0,
+                                                })
+                                                if (res.error) toast.error(res.error)
+                                                else {
+                                                    toast.success("Rendez-vous déplacé")
+                                                    router.refresh()
+                                                }
+                                            } catch {
+                                                toast.error("Glisser-déposer invalide")
+                                            }
+                                        }}
                                     >
                                         <button
                                             type="button"
@@ -142,7 +191,7 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
                                                             width: `${width}%`,
                                                         }}
                                                     >
-                                                        <JobCard job={job} selectors={selectors} />
+                                                        <JobCard job={job} selectors={selectors} dragMime={DRAG_MIME} />
                                                     </div>
                                                 )
                                             })}
@@ -177,7 +226,15 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
     )
 }
 
-function JobCard({ job, selectors }: { job: any; selectors: any }) {
+function JobCard({
+    job,
+    selectors,
+    dragMime,
+}: {
+    job: any
+    selectors: any
+    dragMime: string
+}) {
     const durationMin = jobDurationMinutes(job.services || [])
     const heightPx = Math.max(28, (durationMin / 60) * 52)
     const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
@@ -190,17 +247,30 @@ function JobCard({ job, selectors }: { job: any; selectors: any }) {
     /** Sous ~45px de hauteur, empiler tout tasserait : on fusionne en 2 lignes. */
     const compact = heightPx < 46
 
+    const dragPayload = JSON.stringify({
+        jobId: job.id,
+        minute: localMinute(job.scheduledDate),
+    })
+
     return (
         <Popover>
             <PopoverTrigger asChild>
                 <div
-                    className={`absolute z-10 flex w-full cursor-pointer flex-col overflow-hidden rounded-lg p-1.5 text-xs transition-all hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""}`}
+                    draggable
+                    onDragStart={(e) => {
+                        e.dataTransfer.setData(dragMime, dragPayload)
+                        e.dataTransfer.effectAllowed = "move"
+                    }}
+                    className={`absolute z-10 flex w-full cursor-grab flex-col overflow-hidden rounded-lg py-1.5 pl-5 pr-1.5 text-xs transition-all active:cursor-grabbing hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""}`}
                     style={{
                         height: `${heightPx}px`,
                         minHeight: "28px",
                     }}
-                    title={[clientName, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}
+                    title={`Glisser pour déplacer — ${[clientName, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
                 >
+                    <div className="pointer-events-none absolute left-0 top-0 flex h-full w-4 items-start justify-center pt-0.5 opacity-40">
+                        <GripVertical className="size-3.5 shrink-0" aria-hidden />
+                    </div>
                     {compact ? (
                         <>
                             <div className="truncate font-bold leading-tight">{clientName}</div>

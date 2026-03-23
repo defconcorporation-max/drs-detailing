@@ -5,6 +5,7 @@ import { getActiveTimeLog } from "@/lib/actions/time"
 import { getJobInspections } from "@/lib/actions/inspections"
 import { getInventoryItems, getJobProductUsages } from "@/lib/actions/inventory"
 import { JobExecution } from "@/components/employee/JobExecution"
+import { DbSyncError } from "@/components/system/DbSyncError"
 
 export default async function JobDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -17,28 +18,39 @@ export default async function JobDetailsPage({ params }: { params: Promise<{ id:
         redirect("/employee/login")
     }
 
-    // 2. Fetch Employee Profile ID
-    const employee = await prisma.employeeProfile.findUnique({
-        where: { userId: employeeUserId },
-        include: { badges: { include: { badge: true } } }
-    })
+    let employee
+    let job
+    try {
+        // 2. Fetch Employee Profile ID
+        employee = await prisma.employeeProfile.findUnique({
+            where: { userId: employeeUserId },
+            include: { badges: { include: { badge: true } } },
+        })
 
-    if (!employee) {
-        return <div>Profil employé introuvable. Contactez l'admin.</div>
-    }
-
-    // 3. Fetch Job with full includes
-    const job = await prisma.job.findUnique({
-        where: { id },
-        include: {
-            client: { include: { user: true } },
-            vehicle: true,
-            services: { 
-                include: { service: true },
-                orderBy: { service: { name: 'asc' } }
-            }
+        if (!employee) {
+            return <div>Profil employé introuvable. Contactez l&apos;admin.</div>
         }
-    })
+
+        // 3. Fetch Job with full includes
+        job = await prisma.job.findUnique({
+            where: { id },
+            include: {
+                client: { include: { user: true } },
+                vehicle: true,
+                services: {
+                    include: { service: true },
+                    orderBy: { service: { name: "asc" } },
+                },
+            },
+        })
+    } catch (e) {
+        console.error("[employee/job]", e)
+        return (
+            <div className="p-6">
+                <DbSyncError details={e instanceof Error ? e.message : String(e)} />
+            </div>
+        )
+    }
 
     if (!job) return notFound()
 
@@ -47,7 +59,7 @@ export default async function JobDetailsPage({ params }: { params: Promise<{ id:
         getActiveTimeLog(id, employee.id),
         getJobInspections(id),
         getInventoryItems(),
-        getJobProductUsages(id)
+        getJobProductUsages(id),
     ])
 
     return (

@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/dialog"
 import { WeekViewer } from "@/components/admin/WeekViewer"
 import { Eye } from "lucide-react"
+import { DbSyncError } from "@/components/system/DbSyncError"
+import type { Prisma } from "@/prisma/fresh-client"
+
+type EmployeeWithUser = Prisma.EmployeeProfileGetPayload<{ include: { user: true } }>
 
 // Helper to get next 4 weeks
 function getFourWeeks() {
@@ -50,10 +54,21 @@ function summarizeSlots(slots: any[]) {
 
 export default async function AdminAvailabilityPage() {
     const weeks = getFourWeeks()
-    const employees = await prisma.employeeProfile.findMany({ include: { user: true } })
 
-    // Fetch all for the range
-    const allData = await getAllAvailabilities(weeks[0].start, weeks[3].end)
+    let employees: EmployeeWithUser[] = []
+    let allData: unknown[] = []
+    try {
+        employees = await prisma.employeeProfile.findMany({ include: { user: true } })
+        allData = (await getAllAvailabilities(weeks[0].start, weeks[3].end)) as unknown[]
+    } catch (e) {
+        console.error("[admin/availability]", e)
+        return (
+            <div className="space-y-6">
+                <h2 className="text-3xl font-bold tracking-tight">Disponibilités Équipe</h2>
+                <DbSyncError details={e instanceof Error ? e.message : String(e)} />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
