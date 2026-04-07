@@ -47,7 +47,7 @@ export async function createClient(data: FormData) {
         await prisma.user.create({
             data: {
                 name,
-                email: email || null,
+                email: email || undefined,
                 phone,
                 role: 'CLIENT',
                 password: 'client', // Default password
@@ -135,6 +135,69 @@ export async function deleteVehicle(vehicleId: string) {
         return { success: true }
     } catch (e) {
         return { error: "Erreur suppression" }
+    }
+}
+
+export async function deleteClient(userId: string) {
+    try {
+        const client = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { clientProfile: true }
+        })
+
+        if (!client) return { error: "Client non trouvé" }
+
+        // Cascade manually since we might have many relations
+        // 1. Delete vehicles
+        if (client.clientProfile) {
+            await prisma.vehicle.deleteMany({
+                where: { clientId: client.clientProfile.id }
+            })
+            
+            // 2. Delete the profile
+            await prisma.clientProfile.delete({
+                where: { id: client.clientProfile.id }
+            })
+        }
+
+        // 3. Delete the user
+        await prisma.user.delete({
+            where: { id: userId }
+        })
+
+        revalidatePath('/admin/clients')
+        return { success: true }
+    } catch (e) {
+        console.error(e)
+        return { error: "Erreur lors de la suppression. Assurez-vous qu'aucun job n'est lié." }
+    }
+}
+
+export async function updateVehicle(vehicleId: string, data: FormData) {
+    const make = data.get('make') as string
+    const model = data.get('model') as string
+    const type = data.get('type') as string
+    const year = parseInt(data.get('year') as string)
+    const color = data.get('color') as string
+    const plate = data.get('plate') as string
+
+    if (!make || !model) return { error: "Marque et Modèle requis" }
+
+    try {
+        await prisma.vehicle.update({
+            where: { id: vehicleId },
+            data: {
+                make,
+                model,
+                type: type || undefined,
+                year: year || undefined,
+                color: color || null,
+                licensePlate: plate || null
+            }
+        })
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur lors de la mise à jour du véhicule" }
     }
 }
 

@@ -213,6 +213,21 @@ model InventoryItem {
   
   updatedAt DateTime @updatedAt
   usages    ProductUsage[]
+  formats   InventoryFormat[]
+}
+
+model InventoryFormat {
+  id        String   @id @default(uuid())
+  itemId    String
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  label     String   // ex: "500ml", "1L", "4L"
+  price     Float    @default(0)
+  quantity  Float    @default(0) // Stock spécifique à ce format
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([itemId])
 }
 
 model ProductUsage {

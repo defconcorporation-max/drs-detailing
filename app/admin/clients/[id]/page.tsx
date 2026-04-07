@@ -1,5 +1,5 @@
 
-import { getClientById, updateClientProfile, addVehicle, deleteVehicle } from "@/lib/actions/clients"
+import { getClientById, updateClientProfile, addVehicle, deleteVehicle, updateVehicle, deleteClient } from "@/lib/actions/clients"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -47,6 +47,9 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                         <span>•</span>
                         <span>{client.clientProfile?.loyaltyPoints || 0} pts fidélité</span>
                     </div>
+                </div>
+                <div className="ml-auto">
+                    <DeleteClientButton id={client.id} name={client.name || "ce client"} />
                 </div>
             </div>
 
@@ -144,7 +147,8 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                                             <Car size={48} opacity={0.2} />
                                         </div>
                                     )}
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <EditVehicleDialog vehicle={v} clientId={client.id} />
                                         <DeleteVehicleButton id={v.id} clientId={client.id} />
                                     </div>
                                 </div>
@@ -236,6 +240,16 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                                     <Save size={16} /> Enregistrer les modifications
                                 </Button>
                             </form>
+                            
+                            <Separator className="my-8" />
+                            
+                            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6">
+                                <h4 className="text-lg font-bold text-destructive mb-2">Zone de Danger</h4>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    La suppression d'un client est irréversible. Cela supprimera ses véhicules et son profil d'accès.
+                                </p>
+                                <DeleteClientButton id={client.id} name={client.name || ""} showLabel />
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -245,20 +259,97 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
 }
 
 function DeleteVehicleButton({ id, clientId }: { id: string, clientId: string }) {
-    // Note: Revalidating purely via server action on delete might simpler if we just refresh page.
-    // Ideally useTransition or revalidatePath.
-
     return (
         <form action={async () => {
             "use server"
             await deleteVehicle(id)
-            // Force refresh hack or revalidate
             revalidatePath(`/admin/clients/${clientId}`)
         }}>
-            <Button size="icon" variant="ghost" className="text-destructive h-8 w-8">
-                <Trash2 size={16} />
+            <Button size="icon" variant="secondary" className="text-destructive h-8 w-8 hover:bg-destructive hover:text-white transition-colors">
+                <Trash2 size={14} />
             </Button>
         </form>
+    )
+}
+
+function DeleteClientButton({ id, name, showLabel }: { id: string, name: string, showLabel?: boolean }) {
+    return (
+        <form action={async () => {
+            "use server"
+            await deleteClient(id)
+        }} onSubmit={(e) => {
+            if (!confirm(`Supprimer définitivement le client ${name} ?`)) {
+                e.preventDefault()
+            }
+        }}>
+            <Button type="submit" variant={showLabel ? "destructive" : "ghost"} size={showLabel ? "default" : "icon"} className={showLabel ? "" : "text-muted-foreground hover:text-destructive"}>
+                <Trash2 size={showLabel ? 16 : 18} className={showLabel ? "mr-2" : ""} />
+                {showLabel && "Supprimer le client"}
+            </Button>
+        </form>
+    )
+}
+
+function EditVehicleDialog({ vehicle, clientId }: { vehicle: any, clientId: string }) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button size="icon" variant="secondary" className="h-8 w-8">
+                    <Save size={14} />
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Modifier le Véhicule</DialogTitle>
+                </DialogHeader>
+                <form action={async (formData) => {
+                    "use server"
+                    await updateVehicle(vehicle.id, formData)
+                    revalidatePath(`/admin/clients/${clientId}`)
+                }} className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Marque</Label>
+                        <Input name="make" defaultValue={vehicle.make} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Modèle</Label>
+                        <Input name="model" defaultValue={vehicle.model} className="col-span-3" required />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Année</Label>
+                        <Input name="year" type="number" defaultValue={vehicle.year} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Couleur</Label>
+                        <Input name="color" defaultValue={vehicle.color} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Plaque</Label>
+                        <Input name="plate" defaultValue={vehicle.licensePlate || vehicle.plate} className="col-span-3" />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label className="text-right">Type</Label>
+                        <div className="col-span-3">
+                            <Select name="type" defaultValue={vehicle.type || "SEDAN"}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="SEDAN">Berline (Sedan)</SelectItem>
+                                    <SelectItem value="SUV">VUS (SUV)</SelectItem>
+                                    <SelectItem value="PICKUP">Pickup</SelectItem>
+                                    <SelectItem value="TRUCK">Camion</SelectItem>
+                                    <SelectItem value="OTHER">Autre</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit">Enregistrer</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     )
 }
 

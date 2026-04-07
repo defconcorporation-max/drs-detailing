@@ -75,9 +75,10 @@ export default async function InventoryPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-[40px]"></TableHead>
                                 <TableHead>Nom</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Quantité</TableHead>
+                                <TableHead className="text-center">Type</TableHead>
+                                <TableHead>Stock / Format</TableHead>
                                 <TableHead>Seuil Min.</TableHead>
                                 <TableHead>Statut</TableHead>
                             </TableRow>

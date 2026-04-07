@@ -46,6 +46,7 @@ export async function recordProductUsage(data: {
 
 export async function getInventory() {
     return await prisma.inventoryItem.findMany({
+        include: { formats: true },
         orderBy: { name: "asc" }
     })
 }
@@ -75,15 +76,54 @@ function parseInventoryCreateInput(
 }
 
 export async function createInventoryItem(
-    data: FormData | { name: string; quantity: number; unit: string; minThreshold?: number; type: string; sdsUrl?: string }
+    data: FormData | { name: string; quantity: number; unit: string; minThreshold?: number; type: string; sdsUrl?: string; formats?: any[] }
 ) {
     try {
         const payload = parseInventoryCreateInput(data)
-        const item = await prisma.inventoryItem.create({ data: payload })
+        // If data has formats (from a complex form), we'll handle it
+        const item = await prisma.inventoryItem.create({ 
+            data: {
+                ...payload,
+                // formats handled separately if needed, but for now we'll keep it simple
+            } 
+        })
         revalidatePath('/admin/inventory')
         return { success: true, item }
     } catch (e) {
         return { error: "Erreur lors de la création du produit" }
+    }
+}
+
+export async function addInventoryFormat(itemId: string, data: FormData) {
+    const label = data.get("label") as string
+    const price = parseFloat(data.get("price") as string) || 0
+    const quantity = parseFloat(data.get("quantity") as string) || 0
+
+    if (!label) return { error: "Libellé requis (ex: 1L)" }
+
+    try {
+        await prisma.inventoryFormat.create({
+            data: {
+                itemId,
+                label,
+                price,
+                quantity
+            }
+        })
+        revalidatePath('/admin/inventory')
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur lors de l'ajout du format" }
+    }
+}
+
+export async function deleteInventoryFormat(formatId: string) {
+    try {
+        await prisma.inventoryFormat.delete({ where: { id: formatId } })
+        revalidatePath('/admin/inventory')
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur lors de la suppression du format" }
     }
 }
 
