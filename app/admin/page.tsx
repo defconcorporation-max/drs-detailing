@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 
 import { getDashboardStats } from "@/lib/actions/dashboard"
 import { getPendingRequests } from "@/lib/actions/client-booking"

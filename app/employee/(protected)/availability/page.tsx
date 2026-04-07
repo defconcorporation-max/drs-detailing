@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getAvailability } from "@/lib/actions/availability"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import prisma from "@/lib/db"

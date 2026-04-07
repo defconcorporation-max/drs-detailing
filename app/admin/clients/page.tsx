@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getClients, getBusinesses } from "@/lib/actions/clients"
 import { ClientDialog } from "@/components/admin/ClientDialog"
 import { BusinessDialog } from "@/components/admin/BusinessDialog"
