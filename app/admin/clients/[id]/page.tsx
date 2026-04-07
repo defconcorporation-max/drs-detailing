@@ -1,37 +1,34 @@
-
-import { getClientById, updateClientProfile, addVehicle, deleteVehicle, updateVehicle, deleteClient } from "@/lib/actions/clients"
+import { getClientById, updateClientProfile } from "@/lib/actions/clients"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { Car, Trash2, Plus, Save, ArrowLeft, Clock } from "lucide-react"
+import { Car, ArrowLeft, Clock, Save } from "lucide-react"
 import Link from "next/link"
-import { revalidatePath } from "next/cache"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter
-} from "@/components/ui/dialog"
 import { ClientPortalShare } from "@/components/admin/ClientPortalShare"
+import { 
+    DeleteClientButton, 
+    AddVehicleDialog, 
+    EditVehicleDialog, 
+    DeleteVehicleButton 
+} from "@/components/admin/ClientEntityComponents"
 
 export default async function ClientEntityPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
     const client = await getClientById(id)
 
-    if (!client) return <div>Client introuvable</div>
+    if (!client) return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+            <h2 className="text-2xl font-bold">Client introuvable</h2>
+            <Link href="/admin/clients">
+                <Button variant="outline"><ArrowLeft className="mr-2" size={16} /> Retour à la liste</Button>
+            </Link>
+        </div>
+    )
+    
     const jobs = client.clientProfile?.jobs ?? []
 
     return (
@@ -43,7 +40,9 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">{client.name}</h2>
                     <div className="text-muted-foreground text-sm flex gap-2 items-center">
-                        <Badge variant="outline" className="text-xs font-normal">Client depuis {new Date(client.createdAt).toLocaleDateString()}</Badge>
+                        <Badge variant="outline" className="text-xs font-normal">
+                            Client depuis {new Date(client.createdAt).toLocaleDateString()}
+                        </Badge>
                         <span>•</span>
                         <span>{client.clientProfile?.loyaltyPoints || 0} pts fidélité</span>
                     </div>
@@ -52,8 +51,6 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                     <DeleteClientButton id={client.id} name={client.name || "ce client"} />
                 </div>
             </div>
-
-
 
             {/* Magic Link Banner */}
             <ClientPortalShare url={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/client/${client.clientProfile?.accessKey}`} />
@@ -69,7 +66,6 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                 {/* OVERVIEW TAB */}
                 <TabsContent value="overview" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-3">
-                        {/* Quick Stats */}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium">Dépenses Totales</CardTitle>
@@ -162,11 +158,6 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                                 </CardContent>
                             </Card>
                         ))}
-                        {client.clientProfile?.vehicles.length === 0 && (
-                            <div className="col-span-full text-center py-12 text-muted-foreground bg-slate-50 border border-dashed rounded-lg">
-                                Aucun véhicule. Ajoutez-en un pour commencer.
-                            </div>
-                        )}
                     </div>
                 </TabsContent>
 
@@ -186,7 +177,9 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                                                 <div className="text-xl leading-none">{new Date(job.scheduledDate).getDate()}</div>
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-base">{job.services.map((s: any) => s.service?.name || "Service Inconnu").join(", ")}</div>
+                                                <div className="font-semibold text-base">
+                                                    {job.services.map((s: any) => s.service?.name || "Service Inconnu").join(", ")}
+                                                </div>
                                                 <div className="text-sm text-muted-foreground flex items-center gap-2">
                                                     <Car size={14} />
                                                     {job.vehicle?.make} {job.vehicle?.model}
@@ -204,6 +197,9 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                                         </div>
                                     </div>
                                 ))}
+                                {jobs.length === 0 && (
+                                    <div className="p-8 text-center text-muted-foreground">Aucun historique de job trouvé.</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -255,167 +251,5 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                 </TabsContent>
             </Tabs>
         </div>
-    )
-}
-
-function DeleteVehicleButton({ id, clientId }: { id: string, clientId: string }) {
-    return (
-        <form action={async () => {
-            "use server"
-            await deleteVehicle(id)
-            revalidatePath(`/admin/clients/${clientId}`)
-        }}>
-            <Button size="icon" variant="secondary" className="text-destructive h-8 w-8 hover:bg-destructive hover:text-white transition-colors">
-                <Trash2 size={14} />
-            </Button>
-        </form>
-    )
-}
-
-function DeleteClientButton({ id, name, showLabel }: { id: string, name: string, showLabel?: boolean }) {
-    return (
-        <form action={async () => {
-            "use server"
-            await deleteClient(id)
-        }} onSubmit={(e) => {
-            if (!confirm(`Supprimer définitivement le client ${name} ?`)) {
-                e.preventDefault()
-            }
-        }}>
-            <Button type="submit" variant={showLabel ? "destructive" : "ghost"} size={showLabel ? "default" : "icon"} className={showLabel ? "" : "text-muted-foreground hover:text-destructive"}>
-                <Trash2 size={showLabel ? 16 : 18} className={showLabel ? "mr-2" : ""} />
-                {showLabel && "Supprimer le client"}
-            </Button>
-        </form>
-    )
-}
-
-function EditVehicleDialog({ vehicle, clientId }: { vehicle: any, clientId: string }) {
-    return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button size="icon" variant="secondary" className="h-8 w-8">
-                    <Save size={14} />
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Modifier le Véhicule</DialogTitle>
-                </DialogHeader>
-                <form action={async (formData) => {
-                    "use server"
-                    await updateVehicle(vehicle.id, formData)
-                    revalidatePath(`/admin/clients/${clientId}`)
-                }} className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Marque</Label>
-                        <Input name="make" defaultValue={vehicle.make} className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Modèle</Label>
-                        <Input name="model" defaultValue={vehicle.model} className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Année</Label>
-                        <Input name="year" type="number" defaultValue={vehicle.year} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Couleur</Label>
-                        <Input name="color" defaultValue={vehicle.color} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Plaque</Label>
-                        <Input name="plate" defaultValue={vehicle.licensePlate || vehicle.plate} className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Type</Label>
-                        <div className="col-span-3">
-                            <Select name="type" defaultValue={vehicle.type || "SEDAN"}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="SEDAN">Berline (Sedan)</SelectItem>
-                                    <SelectItem value="SUV">VUS (SUV)</SelectItem>
-                                    <SelectItem value="PICKUP">Pickup</SelectItem>
-                                    <SelectItem value="TRUCK">Camion</SelectItem>
-                                    <SelectItem value="OTHER">Autre</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button type="submit">Enregistrer</Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
-    )
-}
-
-function AddVehicleDialog({ clientId }: { clientId: string }) {
-    return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button size="sm" className="gap-2" variant="outline">
-                    <Plus size={14} />
-                    Ajouter
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Nouveau Véhicule</DialogTitle>
-                </DialogHeader>
-                <form action={async (formData) => {
-                    "use server"
-                    await addVehicle(clientId, formData)
-                }} className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Marque</Label>
-                        <Input name="make" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Modèle</Label>
-                        <Input name="model" className="col-span-3" required />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Année</Label>
-                        <Input name="year" type="number" className="col-span-3" defaultValue={new Date().getFullYear()} />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Couleur</Label>
-                        <Input name="color" className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Plaque</Label>
-                        <Input name="plate" className="col-span-3" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Type</Label>
-                        <div className="col-span-3">
-                            <Select name="type" defaultValue="SEDAN">
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="SEDAN">Berline (Sedan)</SelectItem>
-                                    <SelectItem value="SUV">VUS (SUV)</SelectItem>
-                                    <SelectItem value="PICKUP">Pickup</SelectItem>
-                                    <SelectItem value="TRUCK">Camion</SelectItem>
-                                    <SelectItem value="OTHER">Autre</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label className="text-right">Photo URL</Label>
-                        <Input name="photoUrl" className="col-span-3" placeholder="https://..." />
-                    </div>
-                    <DialogFooter>
-                        <Button type="submit">Ajouter</Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
     )
 }
