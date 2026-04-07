@@ -147,20 +147,37 @@ export async function deleteClient(userId: string) {
 
         if (!client) return { error: "Client non trouvé" }
 
-        // Cascade manually since we might have many relations
-        // 1. Delete vehicles
         if (client.clientProfile) {
+            const profileId = client.clientProfile.id
+
+            // 1. Unlink referrals to avoid FK constraint issues
+            await prisma.clientProfile.updateMany({
+                where: { referredById: profileId },
+                data: { referredById: null }
+            })
+
+            // 2. Delete warranties linked to this client
+            await prisma.warranty.deleteMany({
+                where: { clientId: profileId }
+            })
+
+            // 3. Delete jobs (this will cascade to JobServices, Inspections, TimeLogs, ProductUsages)
+            await prisma.job.deleteMany({
+                where: { clientId: profileId }
+            })
+
+            // 4. Delete vehicles
             await prisma.vehicle.deleteMany({
-                where: { clientId: client.clientProfile.id }
+                where: { clientId: profileId }
             })
             
-            // 2. Delete the profile
+            // 5. Delete the profile
             await prisma.clientProfile.delete({
-                where: { id: client.clientProfile.id }
+                where: { id: profileId }
             })
         }
 
-        // 3. Delete the user
+        // 6. Delete the user
         await prisma.user.delete({
             where: { id: userId }
         })
@@ -169,7 +186,7 @@ export async function deleteClient(userId: string) {
         return { success: true }
     } catch (e) {
         console.error(e)
-        return { error: "Erreur lors de la suppression. Assurez-vous qu'aucun job n'est lié." }
+        return { error: "Erreur lors de la suppression. Contactez le support si le problème persiste." }
     }
 }
 
