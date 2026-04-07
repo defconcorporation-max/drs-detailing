@@ -67,12 +67,18 @@ export default async function BetaFeedbacksPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <form action={updateFeedbackStatus.bind(null, fb.id, 'FIXED')}>
+                                        <form action={async () => {
+                                            "use server"
+                                            await updateFeedbackStatus(fb.id, 'FIXED')
+                                        }}>
                                             <Button size="sm" variant="outline" type="submit" className="h-9 gap-2 border-emerald-500/20 hover:bg-emerald-500/10 hover:text-emerald-500">
                                                 <CheckCircle2 size={16} /> Résolu
                                             </Button>
                                         </form>
-                                        <form action={deleteFeedback.bind(null, fb.id)}>
+                                        <form action={async () => {
+                                            "use server"
+                                            await deleteFeedback(fb.id)
+                                        }}>
                                             <Button size="sm" variant="ghost" type="submit" className="h-9 gap-2 text-destructive hover:bg-destructive/10">
                                                 <Trash size={16} />
                                             </Button>
