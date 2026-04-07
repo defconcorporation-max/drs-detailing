@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getInventory, createInventoryItem } from "@/lib/actions/inventory"
 import { InventoryRow } from "@/components/admin/InventoryRow"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"

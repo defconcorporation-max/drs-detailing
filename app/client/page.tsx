@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 
 import { getClientDashboardData } from "@/lib/actions/portal"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"

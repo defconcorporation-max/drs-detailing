@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { getClientById, updateClientProfile } from "@/lib/actions/clients"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
