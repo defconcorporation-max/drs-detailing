@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic"
 import { AdminSidebar } from "@/components/admin/Sidebar"
 import { MobileAdminNav } from "@/components/admin/MobileNav"
 import { AppChromeBar } from "@/components/showroom/AppChromeBar"
+import { BetaFeedbackTrigger } from "@/components/feedback/BetaFeedbackTrigger"
 
 export default function AdminLayout({
     children,
@@ -22,6 +23,7 @@ export default function AdminLayout({
                     {children}
                 </main>
             </div>
+            <BetaFeedbackTrigger />
         </div>
     )
 }

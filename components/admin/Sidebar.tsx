@@ -19,6 +19,7 @@ import {
     BarChart3,
     Target,
     QrCode,
+    MessageSquarePlus,
 } from "lucide-react"
 import { BrandMark } from "@/components/brand/BrandMark"
 
@@ -31,6 +32,7 @@ const sidebarItems = [
     { href: "/admin/marketing", icon: Target, label: "Marketing & IA" },
     { href: "/admin/inventory", icon: Package, label: "Inventaire" },
     { href: "/admin/accounting", icon: Wallet, label: "Comptabilité" },
+    { href: "/admin/feedbacks", icon: MessageSquarePlus, label: "Beta Feedbacks" },
     { href: "/kiosk/check-in", icon: QrCode, label: "Mode Borne Kiosk" },
     { href: "/admin/team", icon: Shield, label: "Équipe" },
     { href: "/admin/settings", icon: Settings, label: "Paramètres" },

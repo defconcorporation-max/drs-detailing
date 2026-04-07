@@ -57,7 +57,7 @@ export function ClientDialog() {
                         <Label htmlFor="email" className="text-right">
                             Email
                         </Label>
-                        <Input id="email" name="email" type="email" className="col-span-3" required />
+                        <Input id="email" name="email" type="email" className="col-span-3" placeholder="client@exemple.com (Optionnel)" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="phone" className="text-right">

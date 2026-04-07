@@ -41,13 +41,13 @@ export async function createClient(data: FormData) {
     const phone = data.get('phone') as string
     const address = data.get('address') as string
 
-    if (!name || !email) return { error: "Nom et Email requis" }
+    if (!name) return { error: "Nom requis" }
 
     try {
         await prisma.user.create({
             data: {
                 name,
-                email,
+                email: email || null,
                 phone,
                 role: 'CLIENT',
                 password: 'client', // Default password

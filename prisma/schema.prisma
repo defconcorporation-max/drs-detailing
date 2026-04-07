@@ -15,8 +15,8 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
-  email     String   @unique
-  password  String   // In a real app, hashed. For MVP, simple text or hashed if we add auth lib
+  email     String?  @unique
+  password  String?  // In a real app, hashed. For MVP, simple text or hashed if we add auth lib
   name      String?
   role      String     @default("CLIENT") // ADMIN, EMPLOYEE, CLIENT
   phone     String?
@@ -338,4 +338,14 @@ model Warranty {
   status        String   @default("ACTIVE") // ACTIVE, EXPIRED, VOID
   
   createdAt     DateTime @default(now())
+}
+
+model BetaFeedback {
+  id          String   @id @default(uuid())
+  pageUrl     String
+  userContext String?  // Browser, Role, etc.
+  content     String
+  screenshots Json?    // Array of Base64 strings
+  status      String   @default("OPEN") // OPEN, FIXED, IGNORED
+  createdAt   DateTime @default(now())
 }
