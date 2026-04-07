@@ -19,7 +19,7 @@ type JobRequest = {
     client: {
         user: {
             name: string | null
-            email: string
+            email: string | null
             phone: string | null
         }
     }

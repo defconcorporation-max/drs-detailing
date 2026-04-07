@@ -21,7 +21,7 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
     const user = data.user as {
         id: string
         name: string | null
-        email: string
+        email: string | null
         phone: string | null
         role: string
         clientProfile?: { address?: string | null } | null
@@ -79,7 +79,7 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
                     <CardDescription>La suppression est définitive et peut être refusée s’il existe des données liées.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <DeleteUserButton userId={user.id} label={user.name || user.email} />
+                    <DeleteUserButton userId={user.id} label={user.name || user.email || "Sans nom"} />
                 </CardContent>
             </Card>
         </div>

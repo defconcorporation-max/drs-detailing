@@ -182,13 +182,13 @@ export async function updateUser(id: string, data: FormData): Promise<{ error?: 
 
     const dataToSet: {
         name: string
-        email: string
+        email: string | undefined
         phone: string | null
         role: UserRole
         password?: string
     } = {
         name,
-        email,
+        email: email || undefined,
         phone,
         role,
     }

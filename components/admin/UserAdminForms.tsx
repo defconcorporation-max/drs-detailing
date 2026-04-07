@@ -109,7 +109,7 @@ export function CreateUserForm() {
 type EditUser = {
     id: string
     name: string | null
-    email: string
+    email: string | null
     phone: string | null
     role: string
     clientProfile?: { address?: string | null } | null
@@ -168,7 +168,7 @@ export function EditUserForm({ user }: { user: EditUser }) {
 
             <div className="grid gap-2">
                 <Label>E-mail</Label>
-                <Input name="email" type="email" required defaultValue={user.email} className="rounded-xl" />
+                <Input name="email" type="email" defaultValue={user.email || ""} className="rounded-xl" />
             </div>
 
             <div className="grid gap-2">
