@@ -186,7 +186,7 @@ export default async function ClientEntityPage({ params }: { params: Promise<{ i
                                                 <div className="text-xl leading-none">{new Date(job.scheduledDate).getDate()}</div>
                                             </div>
                                             <div>
-                                                <div className="font-semibold text-base">{job.services.map((s: any) => s.service.name).join(", ")}</div>
+                                                <div className="font-semibold text-base">{job.services.map((s: any) => s.service?.name || "Service Inconnu").join(", ")}</div>
                                                 <div className="text-sm text-muted-foreground flex items-center gap-2">
                                                     <Car size={14} />
                                                     {job.vehicle?.make} {job.vehicle?.model}
