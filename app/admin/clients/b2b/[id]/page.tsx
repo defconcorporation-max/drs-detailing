@@ -30,6 +30,7 @@ import {
 
 import { BusinessActions } from "@/components/admin/BusinessActions"
 import { SingleVehicleAction } from "@/components/admin/SingleVehicleAction"
+import { DeleteBusinessButton } from "@/components/admin/DeleteBusinessButton"
 
 export default async function BusinessDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -59,6 +60,7 @@ export default async function BusinessDetailPage({ params }: { params: Promise<{
                 </div>
                 <div className="flex gap-2">
                     <BusinessActions />
+                    <DeleteBusinessButton id={business.id} name={business.name} variant="destructive" showLabel />
                     <Button className="rounded-xl font-bold uppercase text-xs tracking-widest gap-2">
                         <Plus size={16} /> Nouveau Devis
                     </Button>

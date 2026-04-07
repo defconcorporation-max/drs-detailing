@@ -294,6 +294,54 @@ export async function updateBusiness(id: string, data: FormData) {
     }
 }
 
+export async function deleteBusiness(id: string) {
+    try {
+        const business = await prisma.businessProfile.findUnique({
+            where: { id },
+            include: { vehicles: true }
+        })
+
+        if (!business) return { error: "Entreprise non trouvée" }
+
+        // 1. Unlink all clients associated with this business
+        await prisma.clientProfile.updateMany({
+            where: { businessId: id },
+            data: { businessId: null }
+        })
+
+        // 2. Delete all warranties linked to the business
+        await prisma.warranty.deleteMany({
+            where: { businessId: id }
+        })
+
+        // 3. Handle Vehicles and their Jobs
+        const vehicleIds = business.vehicles.map(v => v.id)
+        
+        if (vehicleIds.length > 0) {
+            // Delete jobs for these vehicles (since the fleet is being removed)
+            await prisma.job.deleteMany({
+                where: { vehicleId: { in: vehicleIds } }
+            })
+
+            // Delete the vehicles
+            await prisma.vehicle.deleteMany({
+                where: { businessId: id }
+            })
+        }
+
+        // 4. Finally delete the business profile
+        await prisma.businessProfile.delete({
+            where: { id }
+        })
+
+        revalidatePath('/admin/clients')
+        return { success: true }
+    } catch (e) {
+        console.error(e)
+        return { error: "Erreur lors de la suppression du compte B2B" }
+    }
+}
+
 export async function getBusinessById(id: string) {
     try {
         const business = await prisma.businessProfile.findUnique({

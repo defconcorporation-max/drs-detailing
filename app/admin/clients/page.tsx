@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { getClients, getBusinesses } from "@/lib/actions/clients"
 import { ClientDialog } from "@/components/admin/ClientDialog"
 import { BusinessDialog } from "@/components/admin/BusinessDialog"
+import { DeleteBusinessButton } from "@/components/admin/DeleteBusinessButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
     Table,
@@ -147,10 +148,11 @@ export default async function ClientsPage() {
                                             <TableCell>
                                                 <Badge variant="outline">{biz.clients?.length || 0} Employés/Membres</Badge>
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right flex justify-end gap-2">
                                                 <Link href={`/admin/clients/b2b/${biz.id}`}>
                                                     <Button size="sm" variant="outline">Détails</Button>
                                                 </Link>
+                                                <DeleteBusinessButton id={biz.id} name={biz.name} />
                                             </TableCell>
                                         </TableRow>
                                     ))}
