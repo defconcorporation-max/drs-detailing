@@ -164,11 +164,12 @@ export function NewJobDialog({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto rounded-2xl">
-                <DialogHeader>
+            <DialogContent className="flex max-h-[90vh] max-w-lg flex-col rounded-2xl p-0">
+                <DialogHeader className="px-6 pt-6">
                     <DialogTitle className="font-display text-xl uppercase">Planifier un rendez-vous</DialogTitle>
                 </DialogHeader>
-                <form action={handleSubmit} className="grid gap-4 py-2">
+                <form action={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
+                    <div className="flex-1 space-y-4 overflow-y-auto px-6 py-2">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Date</Label>
@@ -340,8 +341,9 @@ export function NewJobDialog({
                             })}
                         />
                     </div>
+                    </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="border-t px-6 py-4">
                         <Button type="submit" className="w-full rounded-xl sm:w-auto">
                             Créer (statut : en attente)
                         </Button>
