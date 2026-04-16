@@ -230,14 +230,10 @@ export async function getBusinesses() {
             },
             orderBy: { name: 'asc' }
         })
-        if (businesses.length === 0) throw new Error("No data")
         return serialize(businesses)
     } catch (e) {
-        console.warn("B2B fetch failed, using mocks", e)
-        return [
-            { id: "b1", name: "Garage Luxury", contactName: "Marc V.", email: "contact@luxury.com", phone: "514-555-0199", address: "St-Hubert", createdAt: new Date() },
-            { id: "b2", name: "Transports Express", contactName: "Sophie L.", email: "fleet@transports.ca", phone: "450-444-2211", address: "Laval", createdAt: new Date() }
-        ]
+        console.error("B2B fetch failed", e)
+        return []
     }
 }
 
@@ -263,9 +259,8 @@ export async function createBusiness(data: FormData) {
         revalidatePath('/admin/clients')
         return { success: true }
     } catch (e) {
-        console.warn("B2B creation failed, simulating success for demo", e)
-        revalidatePath('/admin/clients')
-        return { success: true, mock: true }
+        console.error("B2B creation failed", e)
+        return { error: "Erreur lors de la création de l'entreprise" }
     }
 }
 
