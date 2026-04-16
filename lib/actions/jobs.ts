@@ -29,21 +29,22 @@ export async function createJob(data: FormData) {
 
     const serviceIds = data.getAll("serviceId") as string[]
     const extrasMap = parseServiceExtrasMap(data)
-    // Updated: Accept multiple employeeIds
-    // MultiSelect sends "employeeIds" or similar, or we might receive multiple "employeeId" fields depending on the form
-    // Since we'll use a hidden input with multiple values or JSON, let's assume JSON stringified array or multiple inputs.
-    // For simplicity with standard formData, if we name inputs "employeeId" repeatedly, getAll works.
     const employeeIds = data.getAll("employeeId") as string[]
 
+    // Custom service (free-text, not in catalog)
+    const customServiceName = (data.get("customServiceName") as string)?.trim() || null
+    const customServicePriceRaw = data.get("customServicePrice") as string
+    const customServicePrice = customServicePriceRaw ? parseFloat(customServicePriceRaw) : null
+
     const dateStr = data.get("date") as string
-    const timeStr = data.get("time") as string // "14:00"
+    const timeStr = data.get("time") as string
 
     if (!clientId || !dateStr || !timeStr) {
         return { error: "Client, Date et Heure requis" }
     }
 
-    if (!serviceIds.length) {
-        return { error: "Sélectionnez au moins un service" }
+    if (!serviceIds.length && !customServiceName) {
+        return { error: "Sélectionnez au moins un service ou ajoutez un service personnalisé" }
     }
 
     try {
@@ -62,7 +63,8 @@ export async function createJob(data: FormData) {
         }
 
         const lines = await buildLinesFromIds(serviceIds, extrasMap)
-        const { totalPrice } = totalsFromLines(lines)
+        const { totalPrice: catalogPrice } = totalsFromLines(lines)
+        const finalPrice = (lines.length ? catalogPrice : 0) + (customServicePrice || 0)
 
         const scheduledDate = scheduledDateFromFormData(data)
 
@@ -71,15 +73,16 @@ export async function createJob(data: FormData) {
                 clientId,
                 vehicleId: vehicleId || null,
                 scheduledDate,
-                // En attente de confirmation → gris sur le calendrier
                 status: "PENDING",
-                totalPrice: lines.length ? totalPrice : null,
-                services: {
+                totalPrice: finalPrice || null,
+                customServiceName,
+                customServicePrice,
+                services: serviceIds.length ? {
                     create: serviceIds.map((id) => ({
                         serviceId: id,
                         selectedExtraIds: extrasMap[id] ?? [],
                     })),
-                },
+                } : undefined,
                 ...(employeeIds.length > 0
                     ? { employees: { connect: employeeIds.map((id) => ({ id })) } }
                     : {}),
@@ -150,10 +153,16 @@ export async function updateJob(id: string, data: FormData) {
     const serviceIds = data.getAll("serviceId") as string[]
     const extrasMap = parseServiceExtrasMap(data)
 
+    // Custom service
+    const customServiceName = (data.get("customServiceName") as string)?.trim() || null
+    const customServicePriceRaw = data.get("customServicePrice") as string
+    const customServicePrice = customServicePriceRaw ? parseFloat(customServicePriceRaw) : null
+
     try {
         const scheduledDate = scheduledDateFromFormData(data)
         const lines = await buildLinesFromIds(serviceIds, extrasMap)
-        const { totalPrice } = totalsFromLines(lines)
+        const { totalPrice: catalogPrice } = totalsFromLines(lines)
+        const finalPrice = (lines.length ? catalogPrice : 0) + (customServicePrice || 0)
 
         await prisma.job.update({
             where: { id },
@@ -162,7 +171,9 @@ export async function updateJob(id: string, data: FormData) {
                 employeeId: employeeIds.length > 0 ? employeeIds[0] : null,
                 status: status || "PENDING",
                 notes,
-                totalPrice: lines.length ? totalPrice : null,
+                totalPrice: finalPrice || null,
+                customServiceName,
+                customServicePrice,
                 services: {
                     deleteMany: {},
                     create: serviceIds.map((sid) => ({

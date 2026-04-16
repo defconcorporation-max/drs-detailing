@@ -34,6 +34,8 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
         }
         return m
     })
+    const [customServiceName, setCustomServiceName] = useState(job.customServiceName || "")
+    const [customServicePrice, setCustomServicePrice] = useState(job.customServicePrice ? String(job.customServicePrice) : "")
 
     useEffect(() => {
         if (!open) return
@@ -46,6 +48,8 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
             m[js.serviceId] = parseExtraIds(js.selectedExtraIds)
         }
         setServiceExtras(m)
+        setCustomServiceName(job.customServiceName || "")
+        setCustomServicePrice(job.customServicePrice ? String(job.customServicePrice) : "")
     }, [open, job])
 
     useEffect(() => {
@@ -87,6 +91,10 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         setLoading(true)
                         selectedServiceIds.forEach((id) => formData.append("serviceId", id))
                         formData.set("serviceExtras", JSON.stringify(serviceExtras))
+                        if (customServiceName.trim()) {
+                            formData.set("customServiceName", customServiceName.trim())
+                            if (customServicePrice) formData.set("customServicePrice", customServicePrice)
+                        }
                         await updateJob(job.id, formData)
                         setLoading(false)
                         setOpen(false)
@@ -187,6 +195,28 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         value={serviceExtras}
                         onChange={setServiceExtras}
                     />
+
+                    <div className="space-y-2 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-primary">Service personnalisé (optionnel)</Label>
+                        <p className="text-xs text-muted-foreground">Prix spécial ou service hors catalogue — ne sera pas enregistré dans la liste.</p>
+                        <div className="grid grid-cols-3 gap-2">
+                            <Input
+                                placeholder="Nom du service"
+                                value={customServiceName}
+                                onChange={(e) => setCustomServiceName(e.target.value)}
+                                className="col-span-2 rounded-lg"
+                            />
+                            <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="Prix $"
+                                value={customServicePrice}
+                                onChange={(e) => setCustomServicePrice(e.target.value)}
+                                className="rounded-lg"
+                            />
+                        </div>
+                    </div>
 
                     <div className="space-y-2">
                         <Label>Notes</Label>

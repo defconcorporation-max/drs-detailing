@@ -181,6 +181,10 @@ model Job {
   totalPrice Float?
   notes      String?
 
+  // Service personnalisé (hors catalogue)
+  customServiceName  String?
+  customServicePrice Float?
+
   productUsages ProductUsage[]
   inspections   Inspection[]
   timeLogs      TimeLog[]

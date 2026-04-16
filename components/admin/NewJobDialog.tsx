@@ -36,6 +36,8 @@ export function NewJobDialog({
     const [serviceExtras, setServiceExtras] = useState<Record<string, string[]>>({})
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
     const [isNewVehicle, setIsNewVehicle] = useState(false)
+    const [customServiceName, setCustomServiceName] = useState("")
+    const [customServicePrice, setCustomServicePrice] = useState("")
 
     const [date, setDate] = useState(prefillDate || "")
     const [time, setTime] = useState(prefillTime || "09:00")
@@ -118,6 +120,10 @@ export function NewJobDialog({
         }
         selectedServices.forEach((id) => formData.append("serviceId", id))
         formData.set("serviceExtras", JSON.stringify(serviceExtras))
+        if (customServiceName.trim()) {
+            formData.set("customServiceName", customServiceName.trim())
+            if (customServicePrice) formData.set("customServicePrice", customServicePrice)
+        }
         const utcMs = new Date(`${date}T${time}:00`).getTime()
         if (!Number.isNaN(utcMs)) formData.set("scheduledAtUtcMs", String(utcMs))
         if (isNewVehicle) {
@@ -134,6 +140,8 @@ export function NewJobDialog({
             setServiceExtras({})
             setSelectedEmployees([])
             setIsNewVehicle(false)
+            setCustomServiceName("")
+            setCustomServicePrice("")
         } else {
             alert(res.error)
         }
@@ -284,6 +292,28 @@ export function NewJobDialog({
                         value={serviceExtras}
                         onChange={setServiceExtras}
                     />
+
+                    <div className="space-y-2 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-3">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-primary">Service personnalisé (optionnel)</Label>
+                        <p className="text-xs text-muted-foreground">Prix spécial ou service hors catalogue — ne sera pas enregistré dans la liste.</p>
+                        <div className="grid grid-cols-3 gap-2">
+                            <Input
+                                placeholder="Nom du service"
+                                value={customServiceName}
+                                onChange={(e) => setCustomServiceName(e.target.value)}
+                                className="col-span-2 rounded-lg"
+                            />
+                            <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="Prix $"
+                                value={customServicePrice}
+                                onChange={(e) => setCustomServicePrice(e.target.value)}
+                                className="rounded-lg"
+                            />
+                        </div>
+                    </div>
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">

@@ -21,8 +21,9 @@ export function jobVehicleSummary(job: { vehicle?: { type?: string | null; make?
     return parts.join(" · ")
 }
 
-export function jobServicesSummary(job: { services?: { service?: { name?: string } }[] }): string {
+export function jobServicesSummary(job: { services?: { service?: { name?: string } }[]; customServiceName?: string | null }): string {
     const list = job.services?.map((s) => s.service?.name).filter(Boolean) as string[]
+    if (job.customServiceName) list.push(job.customServiceName)
     return list.join(" · ")
 }
 
