@@ -25,10 +25,10 @@ export default async function ClientsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Clients & Business</h2>
-                    <p className="text-muted-foreground">Gérez vos clients individuels et vos comptes flottes B2B.</p>
+                    <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Clients & Business</h2>
+                    <p className="text-muted-foreground text-sm">Gérez vos clients individuels et vos comptes flottes B2B.</p>
                 </div>
                 <div className="flex gap-2">
                     <BusinessDialog />
@@ -54,6 +54,7 @@ export default async function ClientsPage() {
                             <CardTitle>Liste des Clients ({clients.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <div className="overflow-x-auto -mx-6 px-6">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -112,6 +113,7 @@ export default async function ClientsPage() {
                                     ))}
                                 </TableBody>
                             </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -122,6 +124,7 @@ export default async function ClientsPage() {
                             <CardTitle>Comptes Business & Flottes ({businesses.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <div className="overflow-x-auto -mx-6 px-6">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -167,6 +170,7 @@ export default async function ClientsPage() {
                                     )}
                                 </TableBody>
                             </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

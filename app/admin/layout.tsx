@@ -19,7 +19,7 @@ export default function AdminLayout({
                 <div className="md:hidden p-3 border-b border-sidebar-border/50 bg-background">
                     <MobileAdminNav />
                 </div>
-                <main className="flex-1 min-w-0 p-4 md:p-8 overflow-y-auto max-h-screen">
+                <main className="flex-1 min-w-0 p-4 md:p-8 overflow-y-auto overflow-x-hidden max-h-screen">
                     {children}
                 </main>
             </div>

@@ -39,33 +39,34 @@ export default async function InventoryPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Inventaire</h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Inventaire</h2>
                 <AddItemDialog />
             </div>
 
-            {/* Alerts Section */}
+            {/* Alerts Section - High end look */}
             {lowStockItems.length > 0 && (
-                <Card className="border-destructive/50 bg-destructive/10">
-                    <CardHeader className="pb-2">
-                        <div className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-destructive" />
-                            <CardTitle className="text-lg">Attention: Stock Bas</CardTitle>
+                <div className="relative overflow-hidden rounded-2xl border border-destructive/20 bg-slate-950 p-6 shadow-2xl">
+                    <div className="absolute -right-8 -top-8 size-32 rounded-full bg-destructive/10 blur-3xl" />
+                    <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
+                        <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-destructive/10 text-destructive ring-1 ring-destructive/20">
+                            <AlertTriangle size={28} />
                         </div>
-                        <CardDescription>
-                            Les articles suivants sont en dessous du seuil minimum.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex-1">
+                            <h3 className="text-xl font-black uppercase tracking-tight text-white">Stock Critique</h3>
+                            <p className="text-sm font-medium text-slate-400">
+                                {lowStockItems.length} articles nécessitent un réapprovisionnement immédiat.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:justify-end">
                             {lowStockItems.map((item: any) => (
-                                <Badge key={item.id} variant="destructive">
-                                    {item.name} ({item.quantity} {item.unit})
+                                <Badge key={item.id} variant="outline" className="border-destructive/30 bg-destructive/5 px-2 py-1 font-bold text-destructive">
+                                    <Package size={12} className="mr-1" /> {item.name} • {item.quantity}{item.unit}
                                 </Badge>
                             ))}
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             )}
 
             {/* Main Table */}
@@ -74,6 +75,7 @@ export default async function InventoryPage() {
                     <CardTitle>Liste des Produits & Équipements</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    <div className="overflow-x-auto -mx-6 px-6">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -98,6 +100,7 @@ export default async function InventoryPage() {
                             )}
                         </TableBody>
                     </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>

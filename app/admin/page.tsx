@@ -177,18 +177,20 @@ export default async function AdminDashboard() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 {cards.map((stat, i) => {
                     const Icon = stat.icon
                     return (
-                        <Card key={i}>
+                        <Card key={i} className="hover:shadow-md transition-shadow">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                                <Icon className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{stat.label}</CardTitle>
+                                <div className="rounded-lg bg-muted/50 p-2">
+                                    <Icon className="h-4 w-4 text-primary" />
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{stat.value}</div>
-                                <p className="text-xs text-muted-foreground">{stat.desc}</p>
+                                <div className="text-2xl font-black">{stat.value}</div>
+                                <p className="text-[10px] text-muted-foreground font-medium">{stat.desc}</p>
                             </CardContent>
                         </Card>
                     )

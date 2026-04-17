@@ -45,10 +45,10 @@ export default async function AccountingPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight uppercase font-display">Comptabilité</h1>
-                    <p className="text-muted-foreground italic">Vision globale de la rentabilité du shop</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight uppercase font-display">Comptabilité</h1>
+                    <p className="text-muted-foreground italic text-sm">Vision globale de la rentabilité du shop</p>
                 </div>
                 <div className="flex gap-2">
                     <GiftCardDialog />
@@ -99,6 +99,7 @@ export default async function AccountingPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <div className="overflow-x-auto -mx-6 px-6">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -128,6 +129,7 @@ export default async function AccountingPage() {
                                     )}
                                 </TableBody>
                             </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

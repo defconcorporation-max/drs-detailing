@@ -65,27 +65,32 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
 
     return (
         <>
-            <div className="w-full overflow-x-auto">
-                <div className="min-w-[1000px] grid grid-cols-[60px_repeat(7,1fr)] overflow-hidden rounded-xl border bg-card shadow-sm">
-                    <div className="sticky top-0 z-20 border-b bg-muted/50 p-2" />
-                    {weekMeta.map((col, i) => (
+            <div className="relative w-full overflow-x-auto scrollbar-thin scrollbar-thumb-sidebar-border/50">
+                {/* Mobile Scroll Hint */}
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-8 items-center justify-center bg-gradient-to-l from-background/80 to-transparent md:hidden">
+                    <div className="animate-pulse rounded-full bg-primary/20 p-1">
+                        <ChevronRight className="size-4 text-primary" />
+                    </div>
+                </div>
+
+                <div className="min-w-[1000px] grid grid-cols-[60px_repeat(7,1fr)] overflow-hidden rounded-xl border bg-card/30 backdrop-blur-sm shadow-sm">
+                    <div className="sticky top-0 left-0 z-30 border-b border-r bg-muted/80 backdrop-blur-md" />
                         <div
                             key={col.key}
-                            className={`sticky top-0 z-20 border-b border-l p-2 text-center font-medium backdrop-blur-sm ${
+                            className={`sticky top-0 z-20 border-b border-l p-2.5 text-center font-bold backdrop-blur-md transition-colors ${
                                 col.isToday
-                                    ? "border-primary/20 bg-primary/10 text-primary"
-                                    : "bg-muted/30"
+                                    ? "border-primary/30 bg-primary/10 text-primary"
+                                    : "bg-muted/50 text-muted-foreground/80"
                             }`}
                         >
-                            <div className="text-sm uppercase tracking-wide opacity-70">{col.weekdayShort}</div>
-                            <div className="text-xl">{col.dayNum}</div>
+                            <div className="text-[10px] uppercase tracking-[0.2em] font-black opacity-60 mb-0.5">{col.weekdayShort}</div>
+                            <div className="text-2xl tracking-tighter">{col.dayNum}</div>
                         </div>
-                    ))}
 
                     {hours.map((hour) => (
                         <div key={hour} className="contents">
-                            <div className="sticky left-0 -mt-px border-b border-r bg-background p-1 pr-2 text-right text-xs text-muted-foreground">
-                                {hour}:00
+                            <div className="sticky left-0 z-20 -mt-px border-b border-r bg-background/90 backdrop-blur-sm p-1.5 pr-3 text-right text-[10px] font-bold tabular-nums text-muted-foreground/70 uppercase">
+                                {hour}h
                             </div>
 
                             {weekMeta.map((col, dayIndex) => {

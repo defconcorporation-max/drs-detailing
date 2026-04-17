@@ -35,14 +35,14 @@ export function InventoryRow({ item }: { item: any }) {
                 <TableCell className="p-2">
                     <form action={async (formData) => {
                         await updateInventoryItem(item.id, formData)
-                    }} className="flex items-center gap-2">
+                    }} className="flex flex-col gap-2 md:grid md:grid-cols-[1fr_120px_100px_100px_1fr_auto] md:gap-2 md:items-center w-full">
                         <button type="submit" className="hidden" />
 
-                        <div className="grid grid-cols-[1fr_120px_100px_100px_1fr_auto] gap-2 items-center w-full">
-                            <Input name="name" defaultValue={item.name} className="h-8 border-transparent group-hover:border-input transition-colors" />
+                        <Input name="name" defaultValue={item.name} className="h-9 md:h-8 border-transparent group-hover:border-input transition-colors font-bold md:font-normal" />
 
+                        <div className="flex gap-2 items-center">
                             <Select name="type" defaultValue={item.type}>
-                                <SelectTrigger className="h-8 text-xs border-transparent group-hover:border-input transition-colors">
+                                <SelectTrigger className="h-8 text-xs border-transparent group-hover:border-input transition-colors flex-1 md:flex-none md:w-[120px]">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -51,31 +51,33 @@ export function InventoryRow({ item }: { item: any }) {
                                 </SelectContent>
                             </Select>
 
-                            <div className="flex items-center gap-1">
-                                <Input name="quantity" type="number" step="0.1" defaultValue={item.quantity} className="h-8 text-center font-bold border-transparent group-hover:border-input transition-colors" />
-                                <span className="text-xs text-muted-foreground w-12">{item.unit}</span>
+                            <div className="flex items-center gap-1 bg-muted/30 px-2 rounded-md h-8 md:bg-transparent">
+                                <Input name="quantity" type="number" step="0.1" defaultValue={item.quantity} className="h-6 w-12 text-center font-black border-transparent bg-transparent" />
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">{item.unit}</span>
                             </div>
+                        </div>
 
+                        <div className="flex items-center gap-4 md:gap-1">
                             <div className="flex items-center gap-1">
-                                <span className="text-xs text-muted-foreground">Min:</span>
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground">Min:</span>
                                 <Input name="threshold" type="number" step="0.1" defaultValue={item.minThreshold} className="h-8 w-14 text-xs border-transparent group-hover:border-input transition-colors" />
                             </div>
 
-                            <div>
+                            <div className="flex-1 md:flex-none">
                                 {item.quantity <= (item.minThreshold || 0) ? (
-                                    <Badge variant="destructive" className="h-6">Bas</Badge>
+                                    <Badge variant="destructive" className="h-6 px-1.5 text-[10px] uppercase font-black animate-pulse">Bas</Badge>
                                 ) : (
-                                    <Badge variant="outline" className="text-green-600 h-6 border-green-200 bg-green-50">OK</Badge>
+                                    <Badge variant="outline" className="text-green-600 h-6 border-green-200 bg-green-50 text-[10px] uppercase font-bold">OK</Badge>
                                 )}
                                 {item.formats && item.formats.length > 0 && (
-                                    <Badge variant="secondary" className="ml-2 h-6 text-[10px]">
+                                    <Badge variant="secondary" className="ml-1 md:ml-2 h-6 text-[9px] uppercase font-bold">
                                         {item.formats.length} formats
                                     </Badge>
                                 )}
                             </div>
 
-                            <div className="flex justify-end gap-1">
-                                <Button size="icon" variant="ghost" type="submit" title="Enregistrer">
+                            <div className="flex justify-end gap-1 ml-auto">
+                                <Button size="icon" variant="ghost" type="submit" title="Enregistrer" className="h-8 w-8 hover:bg-primary/10">
                                     <Save size={16} className="text-primary" />
                                 </Button>
                                 <DeleteInventoryButton id={item.id} />
