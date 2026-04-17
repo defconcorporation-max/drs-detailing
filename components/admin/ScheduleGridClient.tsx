@@ -75,6 +75,7 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
 
                 <div className="min-w-[1000px] grid grid-cols-[60px_repeat(7,1fr)] overflow-hidden rounded-xl border bg-card/30 backdrop-blur-sm shadow-sm">
                     <div className="sticky top-0 left-0 z-30 border-b border-r bg-muted/80 backdrop-blur-md" />
+                    {weekMeta.map((col, i) => (
                         <div
                             key={col.key}
                             className={`sticky top-0 z-20 border-b border-l p-2.5 text-center font-bold backdrop-blur-md transition-colors ${
@@ -86,6 +87,7 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
                             <div className="text-[10px] uppercase tracking-[0.2em] font-black opacity-60 mb-0.5">{col.weekdayShort}</div>
                             <div className="text-2xl tracking-tighter">{col.dayNum}</div>
                         </div>
+                    ))}
 
                     {hours.map((hour) => (
                         <div key={hour} className="contents">
