@@ -16,7 +16,7 @@ import {
     jobServicesSummary,
     jobVehicleSummary,
 } from "@/lib/job-display"
-import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical, ChevronRight } from "lucide-react"
 import { rescheduleJob } from "@/lib/actions/jobs"
 
 export type WeekColumnMeta = {
