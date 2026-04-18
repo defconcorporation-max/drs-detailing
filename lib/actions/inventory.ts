@@ -128,8 +128,34 @@ export async function deleteInventoryFormat(formatId: string) {
 }
 
 export async function updateInventoryItem(id: string, data: any) {
+    const parsedData =
+        data instanceof FormData
+            ? (() => {
+                  const name = String(data.get("name") ?? "").trim()
+                  const typeRaw = String(data.get("type") ?? "PRODUCT")
+                  const quantityRaw = String(data.get("quantity") ?? "")
+                  // Backward compatibility: old form uses `threshold`, newer may use `minThreshold`.
+                  const thresholdRaw = String(
+                      data.get("threshold") ?? data.get("minThreshold") ?? ""
+                  )
+
+                  const quantity = parseFloat(quantityRaw)
+                  const minThreshold = parseFloat(thresholdRaw)
+
+                  return {
+                      ...(name ? { name } : {}),
+                      type:
+                          typeRaw === "EQUIPMENT" || typeRaw === "Équipement"
+                              ? "EQUIPMENT"
+                              : "PRODUCT",
+                      ...(Number.isFinite(quantity) ? { quantity } : {}),
+                      ...(Number.isFinite(minThreshold) ? { minThreshold } : {}),
+                  }
+              })()
+            : data
+
     try {
-        await prisma.inventoryItem.update({ where: { id }, data })
+        await prisma.inventoryItem.update({ where: { id }, data: parsedData })
         revalidatePath('/admin/inventory')
         return { success: true }
     } catch (e) {
