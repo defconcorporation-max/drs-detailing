@@ -32,17 +32,21 @@ export function InventoryRow({ item }: { item: any }) {
                         {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </Button>
                 </TableCell>
-                <TableCell className="p-2">
+                <TableCell className="p-2 whitespace-normal">
                     <form action={async (formData) => {
                         await updateInventoryItem(item.id, formData)
-                    }} className="flex flex-col gap-2 md:grid md:grid-cols-[1fr_120px_100px_100px_1fr_auto] md:gap-2 md:items-center w-full">
+                    }} className="flex w-full flex-wrap items-center gap-2">
                         <button type="submit" className="hidden" />
 
-                        <Input name="name" defaultValue={item.name} className="h-9 md:h-8 border-transparent group-hover:border-input transition-colors font-bold md:font-normal" />
+                        <Input
+                            name="name"
+                            defaultValue={item.name}
+                            className="h-9 min-w-[180px] flex-[2_1_220px] border-transparent font-bold transition-colors group-hover:border-input md:h-8 md:font-normal"
+                        />
 
-                        <div className="flex gap-2 items-center">
+                        <div className="flex items-center gap-2">
                             <Select name="type" defaultValue={item.type}>
-                                <SelectTrigger className="h-8 text-xs border-transparent group-hover:border-input transition-colors flex-1 md:flex-none md:w-[120px]">
+                                <SelectTrigger className="h-8 w-[120px] text-xs border-transparent transition-colors group-hover:border-input">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -51,13 +55,13 @@ export function InventoryRow({ item }: { item: any }) {
                                 </SelectContent>
                             </Select>
 
-                            <div className="flex items-center gap-1 bg-muted/30 px-2 rounded-md h-8 md:bg-transparent">
-                                <Input name="quantity" type="number" step="0.1" defaultValue={item.quantity} className="h-6 w-12 text-center font-black border-transparent bg-transparent" />
+                            <div className="flex h-8 items-center gap-1 rounded-md bg-muted/30 px-2 md:bg-transparent">
+                                <Input name="quantity" type="number" step="0.1" defaultValue={item.quantity} className="h-6 w-14 border-transparent bg-transparent text-center font-black" />
                                 <span className="text-[10px] uppercase font-bold text-muted-foreground">{item.unit}</span>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4 md:gap-1">
+                        <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1">
                                 <span className="text-[10px] uppercase font-bold text-muted-foreground">Min:</span>
                                 <Input name="threshold" type="number" step="0.1" defaultValue={item.minThreshold} className="h-8 w-14 text-xs border-transparent group-hover:border-input transition-colors" />
@@ -70,13 +74,13 @@ export function InventoryRow({ item }: { item: any }) {
                                     <Badge variant="outline" className="text-green-600 h-6 border-green-200 bg-green-50 text-[10px] uppercase font-bold">OK</Badge>
                                 )}
                                 {item.formats && item.formats.length > 0 && (
-                                    <Badge variant="secondary" className="ml-1 md:ml-2 h-6 text-[9px] uppercase font-bold">
+                                    <Badge variant="secondary" className="ml-1 h-6 text-[9px] uppercase font-bold">
                                         {item.formats.length} formats
                                     </Badge>
                                 )}
                             </div>
 
-                            <div className="flex justify-end gap-1 ml-auto">
+                            <div className="ml-auto flex justify-end gap-1">
                                 <Button size="icon" variant="ghost" type="submit" title="Enregistrer" className="h-8 w-8 hover:bg-primary/10">
                                     <Save size={16} className="text-primary" />
                                 </Button>
@@ -89,7 +93,7 @@ export function InventoryRow({ item }: { item: any }) {
             {expanded && (
                 <TableRow className="bg-slate-50/50 dark:bg-slate-900/20 shadow-inner">
                     <TableCell />
-                    <TableCell className="p-0 border-t-0">
+                    <TableCell className="p-0 border-t-0 whitespace-normal">
                         <div className="p-4 pt-2 space-y-3">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Formats & Tarification</h4>
