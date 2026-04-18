@@ -1,4 +1,4 @@
-import { getExpenses, createExpense } from "@/lib/actions/expenses"
+import { getExpenses, createExpense, deleteExpense } from "@/lib/actions/expenses"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,8 @@ import {
     TrendingDown, 
     TrendingUp, 
     Calendar,
-    Receipt
+    Receipt,
+    Trash2,
 } from "lucide-react"
 import { ExpensesOCR } from "@/components/admin/ExpensesOCR"
 import {
@@ -107,6 +108,7 @@ export default async function AccountingPage() {
                                         <TableHead>Catégorie</TableHead>
                                         <TableHead>Description</TableHead>
                                         <TableHead className="text-right">Montant</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -118,11 +120,27 @@ export default async function AccountingPage() {
                                             <TableCell className="text-right font-mono font-bold text-destructive">
                                                 -${expense.amount.toFixed(2)}
                                             </TableCell>
+                                            <TableCell className="text-right">
+                                                <form action={async () => {
+                                                    "use server"
+                                                    await deleteExpense(expense.id)
+                                                }}>
+                                                    <Button
+                                                        type="submit"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                                        title="Supprimer la dépense"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </Button>
+                                                </form>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                     {expenses.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center py-12 text-muted-foreground italic">
+                                            <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
                                                 Aucune dépense enregistrée. Importez un ticket pour commencer.
                                             </TableCell>
                                         </TableRow>

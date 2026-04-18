@@ -1,4 +1,3 @@
-
 import { getJobs, getScheduleSelectors } from "@/lib/actions/jobs"
 import { getAllAvailabilities } from "@/lib/actions/availability"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
@@ -11,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobList } from "@/components/admin/JobList"
 import { AvailabilityGenerator } from "@/components/admin/AvailabilityGenerator"
 import { localDateKey } from "@/lib/date-local"
+import { DbSyncError } from "@/components/system/DbSyncError"
+
+export const dynamic = "force-dynamic"
 
 function getWeekDates(baseDate: Date) {
     const start = new Date(baseDate)
@@ -29,7 +31,8 @@ function getWeekDates(baseDate: Date) {
 
 export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ date?: string; employeeId?: string }> }) {
     const { date, employeeId } = await searchParams
-    const baseDate = date ? new Date(date + "T12:00:00") : new Date()
+    const parsedDate = date ? new Date(date + "T12:00:00") : new Date()
+    const baseDate = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate
     const weekDays = getWeekDates(baseDate)
     const startDate = weekDays[0]
 
@@ -41,9 +44,22 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     const prevLink = `/admin/schedule?date=${prevDate.toISOString().split("T")[0]}${employeeId ? `&employeeId=${employeeId}` : ""}`
     const nextLink = `/admin/schedule?date=${nextDate.toISOString().split("T")[0]}${employeeId ? `&employeeId=${employeeId}` : ""}`
 
-    let jobs = await getJobs()
-    const selectors = await getScheduleSelectors()
-    const availabilities = await getAllAvailabilities(startDate, weekDays[6])
+    let jobs: any[] = []
+    let selectors: any = { clients: [], employees: [], services: [] }
+    let availabilities: any[] = []
+    try {
+        jobs = await getJobs()
+        selectors = await getScheduleSelectors()
+        availabilities = await getAllAvailabilities(startDate, weekDays[6])
+    } catch (e) {
+        console.error("[admin/schedule]", e)
+        return (
+            <div className="space-y-6">
+                <h2 className="font-display text-3xl font-bold tracking-tight uppercase">Planning</h2>
+                <DbSyncError details={e instanceof Error ? e.message : String(e)} />
+            </div>
+        )
+    }
 
     if (employeeId) {
         jobs = jobs.filter((j: any) => j.employees?.some((e: any) => e.id === employeeId))

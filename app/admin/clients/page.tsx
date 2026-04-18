@@ -18,10 +18,135 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Building2, User } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
-export default async function ClientsPage() {
+type SearchParams = {
+    tab?: string
+    q?: string
+    hasVehicles?: string
+    businessLink?: string
+    sort?: string
+    qBiz?: string
+    hasFleet?: string
+    hasMembers?: string
+    sortBiz?: string
+}
+
+function asText(value: string | string[] | undefined) {
+    if (Array.isArray(value)) return value[0] ?? ""
+    return value ?? ""
+}
+
+export default async function ClientsPage({
+    searchParams,
+}: {
+    searchParams: Promise<SearchParams>
+}) {
+    const params = await searchParams
     const clients = await getClients()
     const businesses = await getBusinesses()
+    const tab = asText(params.tab) === "b2b" ? "b2b" : "individuals"
+
+    const q = asText(params.q).toLowerCase().trim()
+    const hasVehicles = asText(params.hasVehicles) || "all"
+    const businessLink = asText(params.businessLink) || "all"
+    const sort = asText(params.sort) || "name-asc"
+
+    const qBiz = asText(params.qBiz).toLowerCase().trim()
+    const hasFleet = asText(params.hasFleet) || "all"
+    const hasMembers = asText(params.hasMembers) || "all"
+    const sortBiz = asText(params.sortBiz) || "name-asc"
+
+    const filteredClients = [...clients]
+        .filter((client: any) => {
+            if (!q) return true
+            const hay = [
+                client.name,
+                client.email,
+                client.phone,
+                client.clientProfile?.address,
+                client.clientProfile?.business?.name,
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase()
+            return hay.includes(q)
+        })
+        .filter((client: any) => {
+            const hasVeh = (client.clientProfile?.vehicles?.length ?? 0) > 0
+            if (hasVehicles === "with") return hasVeh
+            if (hasVehicles === "without") return !hasVeh
+            return true
+        })
+        .filter((client: any) => {
+            const linkedBiz = Boolean(client.clientProfile?.business)
+            if (businessLink === "linked") return linkedBiz
+            if (businessLink === "independent") return !linkedBiz
+            return true
+        })
+
+    filteredClients.sort((a: any, b: any) => {
+        switch (sort) {
+            case "recent":
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            case "oldest":
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            case "name-desc":
+                return (b.name || "").localeCompare(a.name || "", "fr")
+            case "loyalty-desc":
+                return (b.clientProfile?.loyaltyPoints || 0) - (a.clientProfile?.loyaltyPoints || 0)
+            case "vehicles-desc":
+                return (b.clientProfile?.vehicles?.length || 0) - (a.clientProfile?.vehicles?.length || 0)
+            case "name-asc":
+            default:
+                return (a.name || "").localeCompare(b.name || "", "fr")
+        }
+    })
+
+    const filteredBusinesses = [...businesses]
+        .filter((biz: any) => {
+            if (!qBiz) return true
+            const hay = [biz.name, biz.contactName, biz.email, biz.phone, biz.address]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase()
+            return hay.includes(qBiz)
+        })
+        .filter((biz: any) => {
+            const fleetCount = biz.vehicles?.length || 0
+            if (hasFleet === "with") return fleetCount > 0
+            if (hasFleet === "without") return fleetCount === 0
+            return true
+        })
+        .filter((biz: any) => {
+            const membersCount = biz.clients?.length || 0
+            if (hasMembers === "with") return membersCount > 0
+            if (hasMembers === "without") return membersCount === 0
+            return true
+        })
+
+    filteredBusinesses.sort((a: any, b: any) => {
+        switch (sortBiz) {
+            case "name-desc":
+                return (b.name || "").localeCompare(a.name || "", "fr")
+            case "fleet-desc":
+                return (b.vehicles?.length || 0) - (a.vehicles?.length || 0)
+            case "members-desc":
+                return (b.clients?.length || 0) - (a.clients?.length || 0)
+            case "recent":
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            case "name-asc":
+            default:
+                return (a.name || "").localeCompare(b.name || "", "fr")
+        }
+    })
 
     return (
         <div className="space-y-6">
@@ -36,7 +161,7 @@ export default async function ClientsPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="individuals" className="w-full">
+            <Tabs defaultValue={tab} className="w-full">
                 <TabsList className="grid w-full max-w-[400px] grid-cols-2">
                     <TabsTrigger value="individuals" className="gap-2">
                         <User size={16} />
@@ -51,9 +176,56 @@ export default async function ClientsPage() {
                 <TabsContent value="individuals" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Liste des Clients ({clients.length})</CardTitle>
+                            <CardTitle>Liste des Clients ({filteredClients.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <form method="get" className="mb-4 grid gap-2 md:grid-cols-4">
+                                <input type="hidden" name="tab" value="individuals" />
+                                <Input
+                                    name="q"
+                                    placeholder="Rechercher nom, email, téléphone..."
+                                    defaultValue={q}
+                                />
+                                <Select name="hasVehicles" defaultValue={hasVehicles}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Véhicules" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tous véhicules</SelectItem>
+                                        <SelectItem value="with">Avec véhicule</SelectItem>
+                                        <SelectItem value="without">Sans véhicule</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select name="businessLink" defaultValue={businessLink}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Lien B2B" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tous statuts B2B</SelectItem>
+                                        <SelectItem value="linked">Liés à un compte B2B</SelectItem>
+                                        <SelectItem value="independent">Indépendants</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select name="sort" defaultValue={sort}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Tri" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="name-asc">Nom A-Z</SelectItem>
+                                        <SelectItem value="name-desc">Nom Z-A</SelectItem>
+                                        <SelectItem value="recent">Plus récents</SelectItem>
+                                        <SelectItem value="oldest">Plus anciens</SelectItem>
+                                        <SelectItem value="loyalty-desc">Fidélité décroissante</SelectItem>
+                                        <SelectItem value="vehicles-desc">Nb véhicules décroissant</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <div className="md:col-span-4 flex gap-2">
+                                    <Button type="submit" size="sm">Appliquer</Button>
+                                    <Link href="/admin/clients?tab=individuals">
+                                        <Button type="button" size="sm" variant="outline">Réinitialiser</Button>
+                                    </Link>
+                                </div>
+                            </form>
                             <div className="overflow-x-auto -mx-6 px-6">
                             <Table>
                                 <TableHeader>
@@ -67,7 +239,7 @@ export default async function ClientsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {clients.map((client: any) => (
+                                    {filteredClients.map((client: any) => (
                                         <TableRow key={client.id}>
                                             <TableCell className="font-medium">
                                                 <div className="flex flex-col">
@@ -111,6 +283,13 @@ export default async function ClientsPage() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
+                                    {filteredClients.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                Aucun client ne correspond aux filtres.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                             </div>
@@ -121,9 +300,55 @@ export default async function ClientsPage() {
                 <TabsContent value="b2b" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Comptes Business & Flottes ({businesses.length})</CardTitle>
+                            <CardTitle>Comptes Business & Flottes ({filteredBusinesses.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
+                            <form method="get" className="mb-4 grid gap-2 md:grid-cols-4">
+                                <input type="hidden" name="tab" value="b2b" />
+                                <Input
+                                    name="qBiz"
+                                    placeholder="Rechercher entreprise, contact, email..."
+                                    defaultValue={qBiz}
+                                />
+                                <Select name="hasFleet" defaultValue={hasFleet}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Flotte" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Toutes flottes</SelectItem>
+                                        <SelectItem value="with">Avec véhicules</SelectItem>
+                                        <SelectItem value="without">Sans véhicule</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select name="hasMembers" defaultValue={hasMembers}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Membres" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tous membres</SelectItem>
+                                        <SelectItem value="with">Avec membres liés</SelectItem>
+                                        <SelectItem value="without">Sans membre lié</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select name="sortBiz" defaultValue={sortBiz}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Tri" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="name-asc">Nom A-Z</SelectItem>
+                                        <SelectItem value="name-desc">Nom Z-A</SelectItem>
+                                        <SelectItem value="fleet-desc">Flotte décroissante</SelectItem>
+                                        <SelectItem value="members-desc">Membres décroissants</SelectItem>
+                                        <SelectItem value="recent">Plus récents</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <div className="md:col-span-4 flex gap-2">
+                                    <Button type="submit" size="sm">Appliquer</Button>
+                                    <Link href="/admin/clients?tab=b2b">
+                                        <Button type="button" size="sm" variant="outline">Réinitialiser</Button>
+                                    </Link>
+                                </div>
+                            </form>
                             <div className="overflow-x-auto -mx-6 px-6">
                             <Table>
                                 <TableHeader>
@@ -136,7 +361,7 @@ export default async function ClientsPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {businesses.map((biz: any) => (
+                                    {filteredBusinesses.map((biz: any) => (
                                         <TableRow key={biz.id}>
                                             <TableCell className="font-bold">{biz.name}</TableCell>
                                             <TableCell>
@@ -159,12 +384,12 @@ export default async function ClientsPage() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
-                                    {businesses.length === 0 && (
+                                    {filteredBusinesses.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                                                 <Building2 className="mx-auto mb-2 opacity-20" size={48} />
-                                                <p>Aucun compte B2B configuré.</p>
-                                                <p className="text-xs">Créez votre premier compte flotte pour gérer les entreprises.</p>
+                                                <p>Aucun compte B2B ne correspond aux filtres.</p>
+                                                <p className="text-xs">Ajustez vos filtres ou créez un nouveau compte flotte.</p>
                                             </TableCell>
                                         </TableRow>
                                     )}

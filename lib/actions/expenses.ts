@@ -54,3 +54,13 @@ export async function getExpenses() {
         orderBy: { date: 'desc' }
     })
 }
+
+export async function deleteExpense(id: string) {
+    try {
+        await prisma.expense.delete({ where: { id } })
+        revalidatePath("/admin/accounting")
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur suppression dépense" }
+    }
+}
