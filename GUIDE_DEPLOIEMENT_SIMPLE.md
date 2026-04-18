@@ -210,6 +210,15 @@ Le **build** peut être vert alors que le **site plante** : la base Postgres (Su
 
 3. Recharge le site Vercel.
 
+### Option anti-oubli (recommandé)
+
+Pour éviter d'oublier ce step à chaque déploiement, ajoute cette variable dans Vercel :
+
+- `PRISMA_DB_PUSH_ON_BUILD` = `1`
+
+Avec cette variable active, le script de build lance automatiquement `prisma db push` avant `next build`.  
+Si la sync échoue, le déploiement échoue aussi (ce qui évite un site "build vert" mais cassé au runtime).
+
 ### Variables d’environnement Vercel
 
 - **`DATABASE_URL`** doit exister pour **Production** et souvent aussi pour **Preview** (sinon les URLs du type `…-git-main-….vercel.app` cassent).

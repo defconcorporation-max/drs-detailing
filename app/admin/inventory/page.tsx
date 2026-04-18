@@ -80,11 +80,7 @@ export default async function InventoryPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[40px]"></TableHead>
-                                <TableHead>Nom</TableHead>
-                                <TableHead className="text-center">Type</TableHead>
-                                <TableHead>Stock / Format</TableHead>
-                                <TableHead>Seuil Min.</TableHead>
-                                <TableHead>Statut</TableHead>
+                                <TableHead>Article (nom, type, stock, seuil, statut, actions)</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -93,7 +89,7 @@ export default async function InventoryPage() {
                             ))}
                             {items.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
                                         Inventaire vide. Ajoutez votre premier produit.
                                     </TableCell>
                                 </TableRow>
