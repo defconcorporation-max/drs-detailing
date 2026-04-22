@@ -52,7 +52,7 @@ export function QuickClientDialog() {
                     </div>
                     <div className="space-y-2">
                         <Label>Email</Label>
-                        <Input name="email" type="email" required placeholder="client@exemple.com" />
+                        <Input name="email" type="email" placeholder="client@exemple.com (optionnel)" />
                     </div>
                     <div className="space-y-2">
                         <Label>Téléphone</Label>

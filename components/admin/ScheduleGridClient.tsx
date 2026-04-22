@@ -189,13 +189,18 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
                                         <div className="pointer-events-none relative z-10 h-full w-full p-1">
                                             {dayJobs.map((job: any, idx: number) => {
                                                 const left = idx * width
+                                                const dur = job.durationMin || jobDurationMinutes(job.services || [])
+                                                const spanRows = Math.max(1, dur / 60)
+                                                const heightPx = spanRows * 52 // 52px = min-h per row
                                                 return (
                                                     <div
                                                         key={job.id}
-                                                        className="pointer-events-auto absolute top-0 bottom-0"
+                                                        className="pointer-events-auto absolute top-0"
                                                         style={{
                                                             left: `${left}%`,
                                                             width: `${width}%`,
+                                                            height: `${heightPx}px`,
+                                                            zIndex: 20,
                                                         }}
                                                     >
                                                         <JobCard job={job} selectors={selectors} dragMime={DRAG_MIME} />
@@ -242,7 +247,7 @@ function JobCard({
     selectors: any
     dragMime: string
 }) {
-    const durationMin = jobDurationMinutes(job.services || [])
+    const durationMin = job.durationMin || jobDurationMinutes(job.services || [])
     const heightPx = Math.max(28, (durationMin / 60) * 52)
     const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
 
@@ -268,9 +273,8 @@ function JobCard({
                         e.dataTransfer.setData(dragMime, dragPayload)
                         e.dataTransfer.effectAllowed = "move"
                     }}
-                    className={`absolute z-10 flex w-full cursor-grab flex-col overflow-hidden rounded-lg py-1.5 pl-5 pr-1.5 text-xs transition-all active:cursor-grabbing hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""}`}
+                    className={`absolute z-10 flex w-full cursor-grab flex-col overflow-hidden rounded-lg py-1.5 pl-5 pr-1.5 text-xs transition-all active:cursor-grabbing hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""} h-full`}
                     style={{
-                        height: `${heightPx}px`,
                         minHeight: "28px",
                     }}
                     title={`Glisser pour déplacer — ${[clientName, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
@@ -334,7 +338,7 @@ function JobCard({
                         </div>
                         <div className="flex items-center gap-2">
                             <Clock size={16} className="text-muted-foreground" />
-                            {durationMin} min (estimé)
+                            {(durationMin / 60).toFixed(1)}h ({durationMin} min){job.durationMin ? "" : " — estimé"}
                         </div>
                         <div>
                             Client : <span className="font-medium">{job.client?.user?.name}</span>
