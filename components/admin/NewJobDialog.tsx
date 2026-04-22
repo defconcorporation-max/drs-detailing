@@ -7,7 +7,7 @@ import { jobDurationMinutes } from "@/lib/job-metrics"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, Loader2 } from "lucide-react"
+import { Plus, Loader2, Clock } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -38,6 +38,7 @@ export function NewJobDialog({
     const [isNewVehicle, setIsNewVehicle] = useState(false)
     const [customServiceName, setCustomServiceName] = useState("")
     const [customServicePrice, setCustomServicePrice] = useState("")
+    const [durationHours, setDurationHours] = useState("")
 
     const [date, setDate] = useState(prefillDate || "")
     const [time, setTime] = useState(prefillTime || "09:00")
@@ -124,6 +125,10 @@ export function NewJobDialog({
             formData.set("customServiceName", customServiceName.trim())
             if (customServicePrice) formData.set("customServicePrice", customServicePrice)
         }
+        if (durationHours) {
+            const mins = Math.round(parseFloat(durationHours) * 60)
+            if (mins > 0) formData.set("durationMin", String(mins))
+        }
         const utcMs = new Date(`${date}T${time}:00`).getTime()
         if (!Number.isNaN(utcMs)) formData.set("scheduledAtUtcMs", String(utcMs))
         if (isNewVehicle) {
@@ -142,6 +147,7 @@ export function NewJobDialog({
             setIsNewVehicle(false)
             setCustomServiceName("")
             setCustomServicePrice("")
+            setDurationHours("")
         } else {
             alert(res.error)
         }
@@ -178,6 +184,24 @@ export function NewJobDialog({
                         <div className="space-y-2">
                             <Label>Heure</Label>
                             <Input name="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-1.5">
+                                <Clock size={14} className="text-muted-foreground" /> Durée (heures)
+                            </Label>
+                            <Input
+                                type="number"
+                                step="0.5"
+                                min="0.5"
+                                max="12"
+                                placeholder={estimatedDurationMin > 0 ? `Auto: ${(estimatedDurationMin / 60).toFixed(1)}h` : "Ex: 2.5"}
+                                value={durationHours}
+                                onChange={(e) => setDurationHours(e.target.value)}
+                                className="rounded-xl"
+                            />
+                            {!durationHours && estimatedDurationMin > 0 && (
+                                <p className="text-[10px] text-muted-foreground">Estimation auto : {(estimatedDurationMin / 60).toFixed(1)}h basée sur les services</p>
+                            )}
                         </div>
                     </div>
 

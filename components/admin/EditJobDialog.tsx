@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Edit, Trash2, Loader2, Calendar as CalendarIcon, Save } from "lucide-react"
+import { Edit, Trash2, Loader2, Calendar as CalendarIcon, Save, Clock } from "lucide-react"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { JobServiceExtrasPicker } from "@/components/admin/JobServiceExtrasPicker"
 
@@ -36,6 +36,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
     })
     const [customServiceName, setCustomServiceName] = useState(job.customServiceName || "")
     const [customServicePrice, setCustomServicePrice] = useState(job.customServicePrice ? String(job.customServicePrice) : "")
+    const [durationHours, setDurationHours] = useState(job.durationMin ? String(job.durationMin / 60) : "")
 
     useEffect(() => {
         if (!open) return
@@ -50,6 +51,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
         setServiceExtras(m)
         setCustomServiceName(job.customServiceName || "")
         setCustomServicePrice(job.customServicePrice ? String(job.customServicePrice) : "")
+        setDurationHours(job.durationMin ? String(job.durationMin / 60) : "")
     }, [open, job])
 
     useEffect(() => {
@@ -95,6 +97,10 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                             formData.set("customServiceName", customServiceName.trim())
                             if (customServicePrice) formData.set("customServicePrice", customServicePrice)
                         }
+                        if (durationHours) {
+                            const mins = Math.round(parseFloat(durationHours) * 60)
+                            if (mins > 0) formData.set("durationMin", String(mins))
+                        }
                         await updateJob(job.id, formData)
                         setLoading(false)
                         setOpen(false)
@@ -132,6 +138,21 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                                 value={editTime}
                                 onChange={(e) => setEditTime(e.target.value)}
                                 required
+                                className="rounded-xl"
+                            />
+                        </div>
+                        <div className="min-w-0 space-y-2">
+                            <Label className="flex items-center gap-1.5">
+                                <Clock size={14} className="text-muted-foreground" /> Durée (h)
+                            </Label>
+                            <Input
+                                type="number"
+                                step="0.5"
+                                min="0.5"
+                                max="12"
+                                placeholder="Ex: 2.5"
+                                value={durationHours}
+                                onChange={(e) => setDurationHours(e.target.value)}
                                 className="rounded-xl"
                             />
                         </div>

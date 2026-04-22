@@ -36,6 +36,9 @@ export async function createJob(data: FormData) {
     const customServicePriceRaw = data.get("customServicePrice") as string
     const customServicePrice = customServicePriceRaw ? parseFloat(customServicePriceRaw) : null
 
+    const durationMinRaw = data.get("durationMin") as string
+    const durationMin = durationMinRaw ? parseInt(durationMinRaw, 10) : null
+
     const dateStr = data.get("date") as string
     const timeStr = data.get("time") as string
 
@@ -77,6 +80,7 @@ export async function createJob(data: FormData) {
                 totalPrice: finalPrice || null,
                 customServiceName,
                 customServicePrice,
+                durationMin,
                 services: serviceIds.length ? {
                     create: serviceIds.map((id) => ({
                         serviceId: id,
@@ -158,6 +162,9 @@ export async function updateJob(id: string, data: FormData) {
     const customServicePriceRaw = data.get("customServicePrice") as string
     const customServicePrice = customServicePriceRaw ? parseFloat(customServicePriceRaw) : null
 
+    const durationMinRaw = data.get("durationMin") as string
+    const durationMin = durationMinRaw ? parseInt(durationMinRaw, 10) : null
+
     try {
         const scheduledDate = scheduledDateFromFormData(data)
         const lines = await buildLinesFromIds(serviceIds, extrasMap)
@@ -174,6 +181,7 @@ export async function updateJob(id: string, data: FormData) {
                 totalPrice: finalPrice || null,
                 customServiceName,
                 customServicePrice,
+                durationMin,
                 services: {
                     deleteMany: {},
                     create: serviceIds.map((sid) => ({

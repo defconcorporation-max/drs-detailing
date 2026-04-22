@@ -107,7 +107,7 @@ export function ScheduleGridClient({ weekMeta, jobs, selectors, availabilities }
                                     const jobD = job.scheduledDate
                                     if (localDateKey(jobD) !== dayStr) return false
                                     const jobStartH = localHour(jobD)
-                                    const jobDurationMin = jobDurationMinutes(job.services || [])
+                                    const jobDurationMin = job.durationMin || jobDurationMinutes(job.services || [])
                                     const jobEndH = jobStartH + jobDurationMin / 60
                                     return hour >= jobStartH && hour < jobEndH
                                 })

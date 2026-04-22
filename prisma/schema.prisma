@@ -184,6 +184,7 @@ model Job {
   // Service personnalisé (hors catalogue)
   customServiceName  String?
   customServicePrice Float?
+  durationMin        Int?       // Durée manuelle en minutes (override l'estimation auto)
 
   productUsages ProductUsage[]
   inspections   Inspection[]
