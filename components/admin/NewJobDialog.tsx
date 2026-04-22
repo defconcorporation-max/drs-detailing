@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { QuickClientDialog } from "./QuickClientDialog"
 import { JobServiceExtrasPicker } from "@/components/admin/JobServiceExtrasPicker"
+import { ClientSearchSelect } from "@/components/admin/ClientSearchSelect"
 
 export function NewJobDialog({
     clients,
@@ -208,18 +209,11 @@ export function NewJobDialog({
                     <div className="space-y-2">
                         <Label>Client</Label>
                         <div className="flex gap-2">
-                            <Select value={selectedClient} onValueChange={setSelectedClient} required>
-                                <SelectTrigger className="rounded-xl">
-                                    <SelectValue placeholder="Choisir un client" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {clients.map((c: any) => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            {c.user.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <ClientSearchSelect
+                                clients={clients}
+                                value={selectedClient}
+                                onChange={setSelectedClient}
+                            />
                             <QuickClientDialog />
                         </div>
                     </div>
