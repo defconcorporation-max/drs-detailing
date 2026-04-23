@@ -419,62 +419,24 @@ function EventCard({ event }: { event: any }) {
     const color = event.color || "#3b82f6"
     
     return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <div
-                    className="absolute z-10 flex w-full cursor-pointer flex-col overflow-hidden rounded-lg border-l-4 py-1 pl-3 pr-1 text-xs shadow-sm transition-all hover:brightness-105 active:scale-[0.98] h-full"
-                    style={{
-                        backgroundColor: `${color}15`,
-                        borderLeftColor: color,
-                        minHeight: "28px",
-                    }}
-                >
-                    <div className="truncate font-bold leading-tight" style={{ color }}>{event.title}</div>
-                    <div className="flex items-center gap-1 text-[9px] opacity-70">
-                        <Clock size={8} /> {(durationMin / 60).toFixed(1)}h
-                    </div>
-                    {event.isCompleted && (
-                        <div className="mt-auto text-[8px] font-bold uppercase text-emerald-600">✓ Terminé</div>
-                    )}
+        <EditEventDialog event={event}>
+            <div
+                className="absolute z-10 flex w-full cursor-pointer flex-col overflow-hidden rounded-lg border-l-4 py-1.5 pl-3 pr-1 text-xs shadow-sm transition-all hover:brightness-110 active:scale-[0.98] h-full"
+                style={{
+                    backgroundColor: `${color}15`,
+                    borderLeftColor: color,
+                    minHeight: "28px",
+                }}
+            >
+                <div className="truncate font-bold leading-tight" style={{ color }}>{event.title}</div>
+                <div className="flex items-center gap-1 text-[9px] opacity-70">
+                    <Clock size={8} /> {(durationMin / 60).toFixed(1)}h
                 </div>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 rounded-xl p-4">
-                <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h3 className="font-bold text-sm" style={{ color }}>{event.title}</h3>
-                            <p className="text-[10px] text-muted-foreground uppercase font-semibold">{event.type}</p>
-                        </div>
-                        <EditEventDialog event={event} />
-                    </div>
-                    
-                    <div className="space-y-1.5 text-xs">
-                        <div className="flex items-center gap-2">
-                            <CalendarIcon size={14} className="text-muted-foreground" />
-                            {new Date(event.scheduledDate).toLocaleString("fr-FR", { 
-                                day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" 
-                            })}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Clock size={14} className="text-muted-foreground" />
-                            {durationMin} minutes ({(durationMin/60).toFixed(1)}h)
-                        </div>
-                        {event.description && (
-                            <div className="mt-2 rounded-lg bg-muted/30 p-2 text-muted-foreground italic">
-                                {event.description}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t text-[10px]">
-                        <span className={event.isCompleted ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
-                            {event.isCompleted ? "COMPLÉTÉ" : "À FAIRE"}
-                        </span>
-                        <span className="text-muted-foreground">ID: {event.id.slice(0, 8)}</span>
-                    </div>
-                </div>
-            </PopoverContent>
-        </Popover>
+                {event.isCompleted && (
+                    <div className="mt-auto text-[8px] font-bold uppercase text-emerald-600">✓ Terminé</div>
+                )}
+            </div>
+        </EditEventDialog>
     )
 }
 

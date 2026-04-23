@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { localDateKey, localTimeHM } from "@/lib/date-local"
 
-export function EditEventDialog({ event }: { event: any }) {
+export function EditEventDialog({ event, children }: { event: any; children?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [date, setDate] = useState(localDateKey(event.scheduledDate))
@@ -57,7 +57,9 @@ export function EditEventDialog({ event }: { event: any }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <button className="text-[10px] underline opacity-70 hover:opacity-100">Modifier</button>
+                {children || (
+                    <button className="text-[10px] underline opacity-70 hover:opacity-100">Modifier</button>
+                )}
             </DialogTrigger>
             <DialogContent className="max-w-md rounded-2xl">
                 <DialogHeader>
