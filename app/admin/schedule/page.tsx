@@ -1,6 +1,8 @@
 import { getJobs, getScheduleSelectors } from "@/lib/actions/jobs"
+import { getCalendarEvents } from "@/lib/actions/events"
 import { getAllAvailabilities } from "@/lib/actions/availability"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
+import { NewEventDialog } from "@/components/admin/NewEventDialog"
 import { ScheduleGridClient } from "@/components/admin/ScheduleGridClient"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -45,12 +47,20 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     const nextLink = `/admin/schedule?date=${nextDate.toISOString().split("T")[0]}${employeeId ? `&employeeId=${employeeId}` : ""}`
 
     let jobs: any[] = []
+    let events: any[] = []
     let selectors: any = { clients: [], employees: [], services: [] }
     let availabilities: any[] = []
     try {
-        jobs = await getJobs()
-        selectors = await getScheduleSelectors()
-        availabilities = await getAllAvailabilities(startDate, weekDays[6])
+        const [j, e, s, a] = await Promise.all([
+            getJobs(),
+            getCalendarEvents(),
+            getScheduleSelectors(),
+            getAllAvailabilities(startDate, weekDays[6])
+        ])
+        jobs = j
+        events = e
+        selectors = s
+        availabilities = a
     } catch (e) {
         console.error("[admin/schedule]", e)
         return (
@@ -98,6 +108,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                         services={selectors.services}
                         prefillDate={new Date().toISOString().split("T")[0]}
                     />
+                    <NewEventDialog prefillDate={new Date().toISOString().split("T")[0]} />
                     <AvailabilityGenerator weekDays={weekDays} jobs={jobs} availabilities={availabilities} />
                 </div>
             </div>
@@ -133,6 +144,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                             <ScheduleGridClient
                                 weekMeta={weekMeta}
                                 jobs={jobs}
+                                events={events}
                                 selectors={selectors}
                                 availabilities={availabilities}
                             />

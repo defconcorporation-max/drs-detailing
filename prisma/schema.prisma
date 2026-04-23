@@ -369,3 +369,17 @@ model BetaFeedback {
   status      String   @default("OPEN") // OPEN, FIXED, IGNORED
   createdAt   DateTime @default(now())
 }
+
+/// Événements génériques du calendrier (rendez-vous, tâches, rappels, etc.)
+model CalendarEvent {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  scheduledDate DateTime
+  durationMin   Int      @default(60)
+  color         String?  // Hex code pour le calendrier
+  type          String   @default("TASK") // MEETING, TASK, REMINDER, PERSONAL, OTHER
+  isCompleted   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
