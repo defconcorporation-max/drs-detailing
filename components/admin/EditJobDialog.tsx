@@ -244,14 +244,18 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         <Input name="notes" placeholder="Code porte, instructions…" defaultValue={job.notes || ""} className="rounded-xl" />
                     </div>
 
-                    <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-                        <DeleteJobButton id={job.id} />
-                        <Button type="submit" disabled={loading} className="gap-2 rounded-xl">
+                    <DialogFooter>
+                        <Button type="submit" disabled={loading} className="w-full gap-2 rounded-xl">
                             {loading ? <Loader2 className="size-4 animate-spin" /> : <Save size={16} />}
-                            Sauvegarder
+                            Sauvegarder les modifications
                         </Button>
                     </DialogFooter>
                 </form>
+
+                <div className="mt-6 border-t pt-4">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Zone de danger</p>
+                    <DeleteJobButton id={job.id} />
+                </div>
             </DialogContent>
         </Dialog>
     )
