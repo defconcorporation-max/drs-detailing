@@ -119,6 +119,14 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                     return hour >= jobStartH && hour < jobEndH
                                 })
 
+                                const activeEvents = events.filter((ev: any) => {
+                                    const evD = ev.scheduledDate
+                                    if (localDateKey(evD) !== dayStr) return false
+                                    const evStartH = localHour(evD)
+                                    const evEndH = evStartH + (ev.durationMin || 60) / 60
+                                    return hour >= evStartH && hour < evEndH
+                                })
+
                                 const availableEmployees = new Set<string>()
                                 availabilities?.forEach((a: any) => {
                                     if (!a.date) return
@@ -138,8 +146,10 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                     )
                                 ).size
                                 const remaining = Math.max(0, availableCount - busyEmployeeCount)
-                                const totalItems = dayJobs.length + dayEvents.length
-                                const columns = Math.max(totalItems, availableCount || 1)
+                                
+                                // On compte tous les items qui OCCUPENT cette case (jobs ou événements)
+                                const totalActiveItems = activeJobs.length + activeEvents.length
+                                const columns = Math.max(totalActiveItems, availableCount || 1)
                                 const width = 100 / columns
                                 const availabilityStyle =
                                     availableCount > 0 ? { backgroundColor: "rgba(0,0,0,0.04)" } : undefined
@@ -199,7 +209,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                                 const left = idx * width
                                                 const dur = job.durationMin || jobDurationMinutes(job.services || [])
                                                 const spanRows = Math.max(1, dur / 60)
-                                                const heightPx = spanRows * 52 // 52px = min-h per row
+                                                const heightPx = spanRows * 52
                                                 return (
                                                     <div
                                                         key={job.id}
@@ -216,6 +226,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                                 )
                                             })}
                                             {dayEvents.map((ev: any, idx: number) => {
+                                                // On décale après les jobs qui COMMENCENT à cette heure
                                                 const left = (dayJobs.length + idx) * width
                                                 const spanRows = Math.max(1, (ev.durationMin || 60) / 60)
                                                 const heightPx = spanRows * 52

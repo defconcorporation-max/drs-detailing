@@ -29,7 +29,10 @@ export async function createCalendarEvent(data: FormData) {
     }
 
     try {
-        const scheduledDate = new Date(`${dateStr}T${timeStr}:00`)
+        const utcMs = data.get("scheduledAtUtcMs") as string | null
+        const scheduledDate = utcMs && /^\d+$/.test(utcMs) 
+            ? new Date(parseInt(utcMs, 10)) 
+            : new Date(`${dateStr}T${timeStr}:00`)
         const durationMin = parseInt(durationMinStr, 10) || 60
 
         await prisma.calendarEvent.create({
@@ -62,7 +65,11 @@ export async function updateCalendarEvent(id: string, data: FormData) {
     const isCompleted = data.get("isCompleted") === "on"
 
     try {
-        const scheduledDate = new Date(`${dateStr}T${timeStr}:00`)
+        const utcMs = data.get("scheduledAtUtcMs") as string | null
+        const scheduledDate = utcMs && /^\d+$/.test(utcMs) 
+            ? new Date(parseInt(utcMs, 10)) 
+            : new Date(`${dateStr}T${timeStr}:00`)
+
         const durationMin = parseInt(durationMinStr, 10) || 60
 
         await prisma.calendarEvent.update({

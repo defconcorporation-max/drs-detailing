@@ -32,6 +32,9 @@ export function EditEventDialog({ event }: { event: any }) {
         const mins = Math.round(parseFloat(durationHours) * 60)
         formData.set("durationMin", String(mins))
         
+        const utcMs = new Date(`${date}T${time}:00`).getTime()
+        if (!Number.isNaN(utcMs)) formData.set("scheduledAtUtcMs", String(utcMs))
+        
         const res = await updateCalendarEvent(event.id, formData)
         setLoading(false)
 

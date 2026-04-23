@@ -22,6 +22,9 @@ export function NewEventDialog({ prefillDate, prefillTime }: { prefillDate?: str
         const mins = Math.round(parseFloat(durationHours) * 60)
         formData.set("durationMin", String(mins))
         
+        const utcMs = new Date(`${date}T${time}:00`).getTime()
+        if (!Number.isNaN(utcMs)) formData.set("scheduledAtUtcMs", String(utcMs))
+        
         const res = await createCalendarEvent(formData)
         setLoading(false)
 
