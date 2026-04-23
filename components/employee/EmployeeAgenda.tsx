@@ -218,7 +218,7 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                         const startOffsetMin = (START_HOUR * 60)
                                         const topPct = ((startMinutes - startOffsetMin) / TOTAL_MINUTES) * 100
 
-                                        const duration = jobDurationMinutes(job.services || [])
+                                        const duration = job.durationMin || jobDurationMinutes(job.services || [])
                                         const heightPct = (duration / TOTAL_MINUTES) * 100
                                         const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
                                         const vehicleStr = jobVehicleSummary(job)
@@ -300,7 +300,19 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                                         <div className="bg-muted p-4 rounded-lg">
                                                             <div className="font-bold text-lg mb-1">{job.client?.user?.name ?? "—"}</div>
                                                             <div className="text-muted-foreground text-sm flex items-center gap-2">
-                                                                <MapPin size={14} /> {job.client.address || "Aucune adresse"}
+                                                                <MapPin size={14} className="text-primary" />
+                                                                {job.client.address ? (
+                                                                    <a 
+                                                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.client.address)}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-primary underline hover:text-primary/80"
+                                                                    >
+                                                                        {job.client.address}
+                                                                    </a>
+                                                                ) : (
+                                                                    "Aucune adresse"
+                                                                )}
                                                             </div>
                                                             <div className="text-sm mt-2 font-medium">
                                                                 {[jobVehicleSummary(job), job.vehicle?.color].filter(Boolean).join(" · ") || "—"}
