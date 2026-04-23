@@ -17,7 +17,7 @@ import {
     jobServicesSummary,
     jobVehicleSummary,
 } from "@/lib/job-display"
-import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical, ChevronRight } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical, ChevronRight, MapPin } from "lucide-react"
 import { rescheduleJob } from "@/lib/actions/jobs"
 
 export type WeekColumnMeta = {
@@ -393,6 +393,22 @@ function JobCard({
                             <Receipt size={16} className="shrink-0 text-muted-foreground" />
                             <span className="font-semibold">{priceStr ?? "—"}</span>
                         </div>
+                        {job.client?.address && (
+                            <div className="mt-1 flex items-start gap-2 border-t pt-2">
+                                <MapPin size={16} className="mt-0.5 shrink-0 text-primary" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Adresse :</p>
+                                    <a 
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.client.address)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-primary underline hover:text-primary/80 line-clamp-2"
+                                    >
+                                        {job.client.address}
+                                    </a>
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="text-sm">
                         <span className="font-semibold text-muted-foreground">Services :</span>

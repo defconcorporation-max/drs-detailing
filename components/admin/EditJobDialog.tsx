@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Edit, Trash2, Loader2, Calendar as CalendarIcon, Save, Clock } from "lucide-react"
+import { Edit, Trash2, Loader2, Calendar as CalendarIcon, Save, Clock, MapPin } from "lucide-react"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { JobServiceExtrasPicker } from "@/components/admin/JobServiceExtrasPicker"
 
@@ -108,14 +108,34 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                     className="space-y-6 py-2"
                 >
                     <input type="hidden" name="scheduledAtUtcMs" value={scheduledAtUtcMs} />
-                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-border/50 bg-muted/20 p-3 text-sm">
-                        <div>
-                            <span className="font-semibold">Client :</span> {job.client?.user?.name || "—"}
+                    <div className="flex flex-col gap-2 rounded-xl border border-border/50 bg-muted/20 p-3 text-sm">
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <span className="font-semibold text-muted-foreground">Client :</span><br/>
+                                {job.client?.user?.name || "—"}
+                            </div>
+                            <div>
+                                <span className="font-semibold text-muted-foreground">Véhicule :</span><br/>
+                                {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : "—"}
+                            </div>
                         </div>
-                        <div>
-                            <span className="font-semibold">Véhicule :</span>{" "}
-                            {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : "—"}
-                        </div>
+                        {job.client?.address && (
+                            <div className="mt-1 border-t border-border/30 pt-2 flex items-center justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <span className="font-semibold text-muted-foreground text-[10px] uppercase">Adresse de prestation :</span>
+                                    <p className="truncate text-xs">{job.client.address}</p>
+                                </div>
+                                <a 
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.client.address)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[10px] font-bold text-primary hover:bg-primary/20 transition-colors shrink-0"
+                                >
+                                    <MapPin size={12} />
+                                    GOOGLE MAPS
+                                </a>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 min-w-0">
