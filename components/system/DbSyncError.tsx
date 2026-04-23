@@ -19,8 +19,8 @@ export function DbSyncError({
                 <code className="text-xs bg-muted px-1 py-0.5 rounded">npx prisma db push</code> (ou
                 migrations).
             </p>
-            {details && process.env.NODE_ENV === "development" && (
-                <pre className="text-xs mt-4 p-3 bg-muted rounded-md overflow-auto max-h-48 text-destructive">
+            {details && (
+                <pre className="text-[10px] mt-4 p-3 bg-muted rounded-md overflow-auto max-h-48 text-destructive border border-destructive/20 font-mono">
                     {details}
                 </pre>
             )}
