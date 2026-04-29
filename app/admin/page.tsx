@@ -128,82 +128,75 @@ export default async function AdminDashboard() {
                 })}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                {/* Recent Jobs */}
-                <Card className="col-span-4">
-                    <CardHeader>
-                        <CardTitle>Jobs Récents</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {stats.recentCompletedJobs.map((job: any) => (
-                                <div key={job.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
-                                    <div className="flex items-start gap-3">
-                                        <div className="rounded-xl bg-primary/10 p-2.5">
-                                            <Car size={16} className="text-primary" />
-                                        </div>
-                                        <div>
-                                            <div className="font-medium text-sm">{job.client.user.name}</div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {job.vehicle?.make} {job.vehicle?.model}
-                                            </div>
-                                        </div>
+            {/* Jobs du Jour - En gros */}
+            <Card className="border-primary/20 shadow-md">
+                <CardHeader>
+                    <CardTitle className="text-xl">Jobs du Jour</CardTitle>
+                    <CardDescription>Aperçu détaillé des rendez-vous de la journée</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-4">
+                        {stats.jobsToday.length > 0 ? stats.jobsToday.map((job: any) => (
+                            <div key={job.id} className="flex flex-col sm:flex-row sm:items-center justify-between border-b pb-4 last:border-0 last:pb-0 gap-4">
+                                <div className="flex items-start gap-4">
+                                    <div className="rounded-xl bg-primary/10 p-3">
+                                        <Car size={20} className="text-primary" />
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-sm font-semibold">
-                                            {new Date(job.scheduledDate).toLocaleDateString()}
+                                    <div>
+                                        <div className="font-bold text-lg">{job.client?.user?.name}</div>
+                                        <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                                            <Clock size={14}/> {new Date(job.scheduledDate).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}
+                                            <span className="opacity-50">|</span>
+                                            {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : "Aucun véhicule"}
                                         </div>
-                                        <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">Terminé</Badge>
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                            {job.services?.map((s: any) => (
+                                                <Badge key={s.service.id} variant="secondary" className="text-[10px]">{s.service.name}</Badge>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                            {stats.recentCompletedJobs.length === 0 && (
-                                <div className="text-center text-muted-foreground py-4">Aucun job terminé récemment.</div>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                                <div className="flex flex-col sm:items-end gap-2">
+                                    <Badge variant="outline" className="w-fit">{job.status}</Badge>
+                                    <Link href={`/admin/schedule`}>
+                                        <Button size="sm" variant="outline">Voir au planning</Button>
+                                    </Link>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-center text-muted-foreground py-8">Aucun job prévu aujourd'hui.</div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
 
-                {/* Calendar Widget Week */}
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Semaine en cours</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Simple list of days for now, easier to read than small calendar */}
-                        <div className="space-y-2">
-                            {[0, 1, 2, 3, 4, 5, 6].map(offset => {
-                                const d = new Date()
-                                const day = new Date(d.setDate(d.getDate() - d.getDay() + offset))
-                                const isToday = new Date().toDateString() === day.toDateString()
-
-                                return (
-                                    <div
-                                        key={offset}
-                                        className={`flex items-center justify-between rounded-xl p-2.5 ${isToday ? "bg-primary/10 ring-1 ring-primary/20" : ""}`}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <div className={`size-2 rounded-full ${isToday ? "bg-primary shadow-[0_0_8px] shadow-primary/60" : "bg-muted"}`} />
-                                            <span className="text-sm font-medium capitalize">
-                                                {day.toLocaleDateString('fr-FR', { weekday: 'short' })}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground">
-                                                {day.getDate()}
-                                            </span>
-                                        </div>
-                                        {/* Placeholder for dots/count of jobs if we had that detail in this view */}
+            {/* Jobs de la Semaine - Plus petit */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Aperçu de la Semaine</CardTitle>
+                    <CardDescription>Tous les jobs planifiés pour cette semaine</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {stats.jobsWeek.length > 0 ? stats.jobsWeek.map((job: any) => (
+                            <div key={job.id} className="p-3 border rounded-xl bg-card flex flex-col justify-between hover:border-primary/30 transition-colors">
+                                <div>
+                                    <div className="font-semibold text-sm truncate">{job.client?.user?.name}</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                        {new Date(job.scheduledDate).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })} à {new Date(job.scheduledDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
-                                )
-                            })}
-                        </div>
-                        <Link href="/admin/schedule" className="mt-4 block">
-                            <Button variant="outline" className="w-full rounded-xl text-xs">
-                                Voir planning complet
-                            </Button>
-                        </Link>
-                    </CardContent>
-                </Card>
-            </div>
+                                </div>
+                                <div className="mt-2 flex justify-between items-center">
+                                    <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{job.vehicle?.make || "Véhicule"}</span>
+                                    <div className={`size-2 rounded-full ${job.status === 'COMPLETED' ? 'bg-green-500' : job.status === 'CANCELLED' ? 'bg-red-500' : 'bg-blue-500'}`} title={job.status} />
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="col-span-full text-center text-muted-foreground py-4 text-sm">Rien de prévu cette semaine.</div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     )
 }

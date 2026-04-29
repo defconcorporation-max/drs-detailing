@@ -36,7 +36,14 @@ export async function getDashboardStats() {
         
         prisma.job.findMany({ 
             where: { scheduledDate: { gte: startOfWeek, lt: endOfWeek }, status: { not: 'CANCELLED' } },
-            include: { employees: true, employee: true }
+            orderBy: { scheduledDate: 'asc' },
+            include: { 
+                employees: true, 
+                employee: true, 
+                client: { include: { user: true } }, 
+                vehicle: true, 
+                services: { include: { service: true } } 
+            }
         }),
         
         prisma.job.findMany({ 
@@ -88,12 +95,22 @@ export async function getDashboardStats() {
     const monthMetrics = calculateMetrics(jobsMonthRaw)
     const yearMetrics = calculateMetrics(jobsYearRaw)
 
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59)
+    
+    const jobsToday = jobsWeekRaw.filter((j: any) => {
+        const d = new Date(j.scheduledDate)
+        return d >= todayStart && d <= todayEnd
+    })
+
     return serialize({
         clientsCount,
         avgVehicleCost,
         week: weekMetrics,
         month: monthMetrics,
         year: yearMetrics,
+        jobsToday,
+        jobsWeek: jobsWeekRaw,
         recentCompletedJobs,
         lowStockCount
     })
