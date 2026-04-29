@@ -47,6 +47,9 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
     const [prefillTime, setPrefillTime] = useState("09:00")
     const [dropTargetKey, setDropTargetKey] = useState<string | null>(null)
 
+    const [viewMode, setViewMode] = useState<"day" | "week">("week")
+    const [selectedDayKey, setSelectedDayKey] = useState<string>("")
+
     const openSlot = useCallback((dateKey: string, hour: number) => {
         setPrefillDate(dateKey)
         setPrefillTime(`${String(hour).padStart(2, "0")}:00`)
@@ -54,10 +57,16 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
     }, [])
 
     useEffect(() => {
+        const today = weekMeta.find((m) => m.isToday)
+        setSelectedDayKey(today ? today.key : weekMeta[0].key)
+        if (window.innerWidth < 768) {
+            setViewMode("day")
+        }
+
         const end = () => setDropTargetKey(null)
         window.addEventListener("dragend", end)
         return () => window.removeEventListener("dragend", end)
-    }, [])
+    }, [weekMeta])
 
     const hours = useMemo(() => {
         const h: number[] = []
@@ -65,19 +74,65 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
         return h
     }, [])
 
+    const visibleDays = viewMode === "day" ? weekMeta.filter((m) => m.key === selectedDayKey) : weekMeta
+    if (visibleDays.length === 0 && weekMeta.length > 0) visibleDays.push(weekMeta[0])
+
+    const gridColsClass = viewMode === "day" ? "grid-cols-[60px_1fr]" : "grid-cols-[60px_repeat(7,1fr)]"
+    const minWClass = viewMode === "day" ? "min-w-full" : "min-w-[1000px]"
+
     return (
         <>
-            <div className="relative w-full overflow-x-auto scrollbar-thin scrollbar-thumb-sidebar-border/50">
-                {/* Mobile Scroll Hint */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-8 items-center justify-center bg-gradient-to-l from-background/80 to-transparent md:hidden">
-                    <div className="animate-pulse rounded-full bg-primary/20 p-1">
-                        <ChevronRight className="size-4 text-primary" />
-                    </div>
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-2 rounded-xl border bg-card p-1 shadow-sm w-fit">
+                    <Button 
+                        variant={viewMode === "day" ? "default" : "ghost"} 
+                        size="sm" 
+                        onClick={() => setViewMode("day")}
+                        className="rounded-lg text-xs"
+                    >
+                        Jour
+                    </Button>
+                    <Button 
+                        variant={viewMode === "week" ? "default" : "ghost"} 
+                        size="sm" 
+                        onClick={() => setViewMode("week")}
+                        className="rounded-lg text-xs"
+                    >
+                        Semaine
+                    </Button>
                 </div>
+                
+                {viewMode === "day" && (
+                    <div className="flex overflow-x-auto scrollbar-none gap-2 pb-1">
+                        {weekMeta.map((col) => (
+                            <Button
+                                key={col.key}
+                                variant={selectedDayKey === col.key ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setSelectedDayKey(col.key)}
+                                className={`min-w-16 rounded-xl flex flex-col h-auto py-1.5 px-3 gap-0.5 ${selectedDayKey === col.key ? "shadow-md" : ""}`}
+                            >
+                                <span className="text-[10px] uppercase opacity-80">{col.weekdayShort}</span>
+                                <span className="text-sm font-bold">{col.dayNum}</span>
+                            </Button>
+                        ))}
+                    </div>
+                )}
+            </div>
 
-                <div className="min-w-[1000px] grid grid-cols-[60px_repeat(7,1fr)] overflow-hidden rounded-xl border bg-card/30 backdrop-blur-sm shadow-sm">
+            <div className="relative w-full overflow-x-auto scrollbar-thin scrollbar-thumb-sidebar-border/50">
+                {/* Mobile Scroll Hint - only in week mode */}
+                {viewMode === "week" && (
+                    <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-8 items-center justify-center bg-gradient-to-l from-background/80 to-transparent md:hidden">
+                        <div className="animate-pulse rounded-full bg-primary/20 p-1">
+                            <ChevronRight className="size-4 text-primary" />
+                        </div>
+                    </div>
+                )}
+
+                <div className={`${minWClass} grid ${gridColsClass} overflow-hidden rounded-xl border bg-card/30 backdrop-blur-sm shadow-sm transition-all duration-300`}>
                     <div className="sticky top-0 left-0 z-30 border-b border-r bg-muted/80 backdrop-blur-md" />
-                    {weekMeta.map((col, i) => (
+                    {visibleDays.map((col, i) => (
                         <div
                             key={col.key}
                             className={`sticky top-0 z-20 border-b border-l p-2.5 text-center font-bold backdrop-blur-md transition-colors ${
@@ -97,7 +152,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                 {hour}h
                             </div>
 
-                            {weekMeta.map((col, dayIndex) => {
+                            {visibleDays.map((col, dayIndex) => {
                                 const dayStr = col.key
 
                                 const dayJobs = jobs.filter((job: any) => {

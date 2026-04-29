@@ -67,8 +67,12 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
     const router = useRouter()
     const [currentDate, setCurrentDate] = useState(new Date())
     const [dropTargetDayIdx, setDropTargetDayIdx] = useState<number | null>(null)
+    const [viewMode, setViewMode] = useState<"day" | "week">("week")
 
     useEffect(() => {
+        if (window.innerWidth < 768) {
+            setViewMode("day")
+        }
         const end = () => setDropTargetDayIdx(null)
         window.addEventListener("dragend", end)
         return () => window.removeEventListener("dragend", end)
@@ -76,25 +80,48 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
 
     // Week Range
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }) // Monday
-    const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
+    const weekDaysFull = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
+    
+    // Si vue jour, on affiche SEULEMENT le currentDate
+    const visibleDays = viewMode === "day" ? [currentDate] : weekDaysFull
 
     // Navigation
-    const nextWeek = () => setCurrentDate(addDays(currentDate, 7))
-    const prevWeek = () => setCurrentDate(addDays(currentDate, -7))
+    const nextPeriod = () => setCurrentDate(addDays(currentDate, viewMode === "week" ? 7 : 1))
+    const prevPeriod = () => setCurrentDate(addDays(currentDate, viewMode === "week" ? -7 : -1))
     const today = () => setCurrentDate(new Date())
 
     return (
         <div className="flex flex-col h-[calc(100vh-200px)] sm:h-[800px] border rounded-xl bg-background shadow-sm overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b gap-4">
                 <div className="flex items-center gap-4">
                     <h2 className="text-xl font-bold capitalize">
-                        {format(currentDate, 'MMMM yyyy', { locale: fr })}
+                        {format(currentDate, viewMode === "day" ? "EEEE d MMMM" : 'MMMM yyyy', { locale: fr })}
                     </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-md border bg-muted/50 p-1">
+                        <Button 
+                            variant={viewMode === "day" ? "default" : "ghost"} 
+                            size="sm" 
+                            onClick={() => setViewMode("day")}
+                            className="h-7 text-xs px-2"
+                        >
+                            Jour
+                        </Button>
+                        <Button 
+                            variant={viewMode === "week" ? "default" : "ghost"} 
+                            size="sm" 
+                            onClick={() => setViewMode("week")}
+                            className="h-7 text-xs px-2"
+                        >
+                            Semaine
+                        </Button>
+                    </div>
                     <div className="flex items-center rounded-md border bg-muted/50">
-                        <Button variant="ghost" size="icon" onClick={prevWeek}><ChevronLeft size={16} /></Button>
-                        <Button variant="ghost" size="sm" onClick={today}>Aujourd'hui</Button>
-                        <Button variant="ghost" size="icon" onClick={nextWeek}><ChevronRight size={16} /></Button>
+                        <Button variant="ghost" size="icon" onClick={prevPeriod} className="h-8 w-8"><ChevronLeft size={16} /></Button>
+                        <Button variant="ghost" size="sm" onClick={today} className="h-8">Aujourd'hui</Button>
+                        <Button variant="ghost" size="icon" onClick={nextPeriod} className="h-8 w-8"><ChevronRight size={16} /></Button>
                     </div>
                 </div>
             </div>
@@ -114,9 +141,9 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                 </div>
 
                 {/* Days Columns */}
-                {/* On small screens, allow horizontal scroll instead of forcing the whole layout to be very wide */}
-                <div className="flex flex-1 min-w-[650px] sm:min-w-[800px]">
-                    {weekDays.map((day, i) => {
+                {/* On small screens, allow horizontal scroll instead of forcing the whole layout to be very wide, unless in day mode */}
+                <div className={`flex flex-1 ${viewMode === "day" ? "min-w-full" : "min-w-[650px] sm:min-w-[800px]"}`}>
+                    {visibleDays.map((day, i) => {
                         const isToday = isSameDay(day, new Date())
 
                         // FIX: Use isSameDay for robust local comparison
