@@ -5,64 +5,105 @@ import { serialize } from "@/lib/utils"
 
 export async function getDashboardStats() {
     const now = new Date()
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
+    
+    // Pour la semaine : de lundi à dimanche
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1))
     startOfWeek.setHours(0, 0, 0, 0)
+    
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 7)
 
-    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-    const startOfYear = new Date(new Date().getFullYear(), 0, 1)
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const startOfYear = new Date(now.getFullYear(), 0, 1)
+
+    // Ensure SystemSetting exists
+    let setting = await prisma.systemSetting.findUnique({ where: { id: "GLOBAL" } })
+    if (!setting) {
+        setting = await prisma.systemSetting.create({ data: { id: "GLOBAL", averageVehicleCost: 7.0 } })
+    }
+    const avgVehicleCost = setting.averageVehicleCost
 
     const [
         clientsCount,
-        activeJobs,
-        jobsThisWeek,
-        jobsThisMonth,
-        jobsThisYear,
-        recentActivity,
+        jobsWeekRaw,
+        jobsMonthRaw,
+        jobsYearRaw,
+        recentCompletedJobs,
         lowStockCount
     ] = await Promise.all([
         prisma.clientProfile.count(),
-        prisma.job.count({ where: { status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] } } }),
-        prisma.job.count({ where: { status: 'COMPLETED', scheduledDate: { gte: startOfWeek } } }),
-        prisma.job.count({ where: { status: 'COMPLETED', scheduledDate: { gte: startOfMonth } } }),
-        prisma.job.count({ where: { status: 'COMPLETED', scheduledDate: { gte: startOfYear } } }),
+        
+        prisma.job.findMany({ 
+            where: { scheduledDate: { gte: startOfWeek, lt: endOfWeek }, status: { not: 'CANCELLED' } },
+            include: { employees: true, employee: true }
+        }),
+        
+        prisma.job.findMany({ 
+            where: { scheduledDate: { gte: startOfMonth }, status: { not: 'CANCELLED' } },
+            include: { employees: true, employee: true }
+        }),
+        
+        prisma.job.findMany({ 
+            where: { scheduledDate: { gte: startOfYear }, status: { not: 'CANCELLED' } },
+            include: { employees: true, employee: true }
+        }),
+        
         prisma.job.findMany({
             take: 5,
-            orderBy: { updatedAt: 'desc' },
-            include: { client: { include: { user: true } }, services: { include: { service: true } } }
+            where: { status: 'COMPLETED' },
+            orderBy: { scheduledDate: 'desc' },
+            include: { client: { include: { user: true } }, services: { include: { service: true } }, vehicle: true }
         }),
+        
         prisma.inventoryItem.count({
-            where: {
-                quantity: { lte: prisma.inventoryItem.fields.minThreshold }
-            }
+            where: { quantity: { lte: prisma.inventoryItem.fields.minThreshold } }
         })
     ])
 
-    // Mock/Calculate AI metrics
-    const avgProfitPerHour = 48.5
-    const avgNps = "4.9/5"
-    const profitIncrease = 15
-    // AI & Performance Metrics (Mocked or try/catch for DB fields)
-    let pendingReviews = 0
-    try {
-        pendingReviews = await prisma.clientProfile.count({
-            // @ts-ignore
-            where: { npsScore: null }
+    const calculateMetrics = (jobs: any[]) => {
+        let revenue = 0
+        let hours = 0
+        let salary = 0
+        
+        jobs.forEach(job => {
+            revenue += job.totalPrice || 0
+            const durationHrs = (job.durationMin || 60) / 60
+            hours += durationHrs
+            
+            const emps = job.employees?.length ? job.employees : (job.employee ? [job.employee] : [])
+            emps.forEach((emp: any) => {
+                salary += (emp.hourlyRate || 0) * durationHrs
+            })
         })
-    } catch (e) {
-        console.warn("NPS Score column missing from DB yet, using 0 fallback")
+        
+        const count = jobs.length
+        const totalVehicleCost = count * avgVehicleCost
+        const profit = revenue - salary - totalVehicleCost
+        
+        return { count, revenue, hours, salary, profit }
     }
+
+    const weekMetrics = calculateMetrics(jobsWeekRaw)
+    const monthMetrics = calculateMetrics(jobsMonthRaw)
+    const yearMetrics = calculateMetrics(jobsYearRaw)
 
     return serialize({
         clientsCount,
-        activeJobs,
-        jobsThisWeek,
-        jobsThisMonth,
-        jobsThisYear,
-        recentActivity,
-        lowStockCount,
-        avgProfitPerHour,
-        avgNps,
-        profitIncrease,
-        pendingReviews
+        avgVehicleCost,
+        week: weekMetrics,
+        month: monthMetrics,
+        year: yearMetrics,
+        recentCompletedJobs,
+        lowStockCount
     })
+}
+
+export async function updateSystemSettings(data: { averageVehicleCost: number }) {
+    await prisma.systemSetting.upsert({
+        where: { id: "GLOBAL" },
+        update: { averageVehicleCost: data.averageVehicleCost },
+        create: { id: "GLOBAL", averageVehicleCost: data.averageVehicleCost }
+    })
+    return { success: true }
 }

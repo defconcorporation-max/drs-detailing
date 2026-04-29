@@ -2,9 +2,8 @@ export const dynamic = "force-dynamic"
 
 import { getDashboardStats } from "@/lib/actions/dashboard"
 import { getPendingRequests } from "@/lib/actions/client-booking"
-import { runReminderDispatch } from "@/lib/actions/notifications"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Users, Calendar, DollarSign, AlertTriangle, Briefcase, Car, CheckCircle, Clock, BarChart3, Target } from "lucide-react"
+import { Users, Calendar, DollarSign, AlertTriangle, Briefcase, Car, Clock, TrendingUp, PiggyBank } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,13 +13,15 @@ export default async function AdminDashboard() {
     const stats = await getDashboardStats()
     const pendingRequests = await getPendingRequests()
 
+    const formatMoney = (val: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(val)
+
     const cards = [
-        { label: "Clients Total", value: stats.clientsCount, icon: Users, desc: "Total enregistré" },
-        { label: "Jobs (Semaine)", value: stats.jobsThisWeek, icon: Briefcase, desc: "Cette semaine" },
-        { label: "Jobs (Mois)", value: stats.jobsThisMonth, icon: Calendar, desc: "Ce mois" },
-        { label: "Jobs (Année)", value: stats.jobsThisYear, icon: Car, desc: "Cette année" },
-        { label: "Rentabilité/H", value: `${stats.avgProfitPerHour || 45}€`, icon: DollarSign, desc: "Moyenne IA" },
-        { label: "Avis NPS", value: stats.avgNps || "4.8/5", icon: CheckCircle, desc: "Score satisfaction" },
+        { label: "Jobs (Semaine)", value: stats.week.count, icon: Briefcase, desc: `${stats.week.hours.toFixed(1)}h planifiées` },
+        { label: "Chiffre d'Affaires (Semaine)", value: formatMoney(stats.week.revenue), icon: DollarSign, desc: "Revenus bruts" },
+        { label: "Coût Salaire (Semaine)", value: formatMoney(stats.week.salary), icon: Users, desc: "Coût employé estimé" },
+        { label: "Profit (Semaine)", value: formatMoney(stats.week.profit), icon: PiggyBank, desc: `CA - Salaires - (${stats.week.count}x${stats.avgVehicleCost}$ mat.)` },
+        { label: "Profit (Mois)", value: formatMoney(stats.month.profit), icon: TrendingUp, desc: "Ce mois-ci" },
+        { label: "Profit (Année)", value: formatMoney(stats.year.profit), icon: Calendar, desc: "Cette année" },
     ]
 
     return (
@@ -104,77 +105,7 @@ export default async function AdminDashboard() {
                 </Link>
             )}
 
-            {/* Reminders Quick Action */}
-            <Card className="border-cyan-500/25 bg-gradient-to-br from-cyan-500/10 via-transparent to-primary/5 dark:from-cyan-500/15">
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">
-                            <Clock className="h-4 w-4" />
-                        </span>
-                        Rappels clients (J-1 / H-2)
-                    </CardTitle>
-                    <CardDescription>
-                        Envoie les emails (Resend) ou simulation si les clés ne sont pas configurées.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form
-                        action={async () => {
-                            "use server"
-                            await runReminderDispatch()
-                        }}
-                    >
-                        <Button type="submit" variant="outline" className="rounded-xl">
-                            Lancer les rappels maintenant
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
 
-            {/* AI & Performance Section */}
-            <div className="grid gap-4 md:grid-cols-2">
-                <Link href="/admin/reports">
-                    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent hover:border-primary/40 transition-all cursor-pointer group">
-                        <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle className="text-base text-primary">IA : Analyse de Rentabilité</CardTitle>
-                                <CardDescription>Optimisation des marges par service</CardDescription>
-                            </div>
-                            <div className="rounded-full bg-primary/10 p-2 group-hover:scale-110 transition-transform">
-                                <BarChart3 className="size-5 text-primary" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1 opacity-70">Performance Live</div>
-                            <div className="flex items-center gap-3">
-                                <div className="text-2xl font-bold">+{stats.profitIncrease || 12}%</div>
-                                <Badge variant="outline" className="text-[10px] border-primary/30 text-primary bg-primary/5 uppercase">+240€/semaine</Badge>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
-
-                <Link href="/admin/marketing">
-                    <Card className="border-indigo-500/20 bg-gradient-to-br from-indigo-500/5 to-transparent hover:border-indigo-500/40 transition-all cursor-pointer group">
-                        <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle className="text-base text-indigo-400">IA : Campagnes NPS</CardTitle>
-                                <CardDescription>Rétention & Segmentation automatique</CardDescription>
-                            </div>
-                            <div className="rounded-full bg-indigo-500/10 p-2 group-hover:scale-110 transition-transform">
-                                <Target className="size-5 text-indigo-400" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1 opacity-70">Engagement Client</div>
-                            <div className="flex items-center gap-3">
-                                <div className="text-2xl font-bold">{stats.pendingReviews || 8}</div>
-                                <div className="text-xs text-muted-foreground">recommandations IA prêtes</div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </Link>
-            </div>
 
             {/* Stats Grid */}
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -205,7 +136,7 @@ export default async function AdminDashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {stats.recentActivity.map((job: any) => (
+                            {stats.recentCompletedJobs.map((job: any) => (
                                 <div key={job.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
                                     <div className="flex items-start gap-3">
                                         <div className="rounded-xl bg-primary/10 p-2.5">
@@ -222,12 +153,12 @@ export default async function AdminDashboard() {
                                         <div className="text-sm font-semibold">
                                             {new Date(job.scheduledDate).toLocaleDateString()}
                                         </div>
-                                        <Badge variant="outline" className="text-[10px]">{job.status}</Badge>
+                                        <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-600 border-green-500/20">Terminé</Badge>
                                     </div>
                                 </div>
                             ))}
-                            {stats.recentActivity.length === 0 && (
-                                <div className="text-center text-muted-foreground py-4">Aucune activité récente.</div>
+                            {stats.recentCompletedJobs.length === 0 && (
+                                <div className="text-center text-muted-foreground py-4">Aucun job terminé récemment.</div>
                             )}
                         </div>
                     </CardContent>

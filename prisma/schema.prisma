@@ -383,3 +383,9 @@ model CalendarEvent {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model SystemSetting {
+  id                 String   @id @default("GLOBAL")
+  averageVehicleCost Float    @default(7.0)
+  updatedAt          DateTime @updatedAt
+}

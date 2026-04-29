@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { updateAdminPassword } from "@/lib/actions/settings"
 import { getServices, createService } from "@/lib/actions/services"
+import { updateSystemSettings } from "@/lib/actions/dashboard"
+import prisma from "@/lib/db"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,16 +23,44 @@ import {
 
 export default async function SettingsPage() {
     const services = await getServices()
+    let setting = await prisma.systemSetting.findUnique({ where: { id: "GLOBAL" } })
+    if (!setting) {
+        setting = await prisma.systemSetting.create({ data: { id: "GLOBAL", averageVehicleCost: 7.0 } })
+    }
 
     return (
         <div className="space-y-6">
             <h2 className="text-3xl font-bold tracking-tight">Paramètres</h2>
 
-            <Tabs defaultValue="services" className="w-full">
+            <Tabs defaultValue="general" className="w-full">
                 <TabsList className="mb-6">
+                    <TabsTrigger value="general">Général</TabsTrigger>
                     <TabsTrigger value="services">Services & Tarifs</TabsTrigger>
                     <TabsTrigger value="security">Sécurité Admin</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="general" className="mt-0">
+                    <Card className="max-w-md">
+                        <CardHeader>
+                            <CardTitle>Coûts & Rentabilité</CardTitle>
+                            <CardDescription>Paramètres pour les calculs du tableau de bord.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <form action={async (formData) => {
+                                "use server"
+                                await updateSystemSettings({ averageVehicleCost: parseFloat(formData.get("averageVehicleCost") as string) })
+                            }} className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Coût moyen pour un véhicule ($) (produits, matériel)</Label>
+                                    <Input name="averageVehicleCost" type="number" step="0.01" defaultValue={setting.averageVehicleCost} required />
+                                </div>
+                                <Button type="submit" className="w-full gap-2">
+                                    <Save size={16} /> Enregistrer
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 <TabsContent value="services" className="space-y-6 mt-0">
                     <div className="flex items-center justify-between">
