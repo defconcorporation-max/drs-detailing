@@ -38,8 +38,8 @@ export async function getDashboardStats() {
             where: { scheduledDate: { gte: startOfWeek, lt: endOfWeek }, status: { not: 'CANCELLED' } },
             orderBy: { scheduledDate: 'asc' },
             include: { 
-                employees: true, 
-                employee: true, 
+                employees: { include: { user: true } }, 
+                employee: { include: { user: true } }, 
                 client: { include: { user: true } }, 
                 vehicle: true, 
                 services: { include: { service: true } } 
@@ -48,12 +48,12 @@ export async function getDashboardStats() {
         
         prisma.job.findMany({ 
             where: { scheduledDate: { gte: startOfMonth }, status: { not: 'CANCELLED' } },
-            include: { employees: true, employee: true }
+            include: { employees: { include: { user: true } }, employee: { include: { user: true } } }
         }),
         
         prisma.job.findMany({ 
             where: { scheduledDate: { gte: startOfYear }, status: { not: 'CANCELLED' } },
-            include: { employees: true, employee: true }
+            include: { employees: { include: { user: true } }, employee: { include: { user: true } } }
         }),
         
         prisma.job.findMany({
@@ -72,6 +72,7 @@ export async function getDashboardStats() {
         let revenue = 0
         let hours = 0
         let salary = 0
+        let employeeBreakdown: Record<string, { hours: number, salary: number, name: string }> = {}
         
         jobs.forEach(job => {
             revenue += job.totalPrice || 0
@@ -80,7 +81,15 @@ export async function getDashboardStats() {
             
             const emps = job.employees?.length ? job.employees : (job.employee ? [job.employee] : [])
             emps.forEach((emp: any) => {
-                salary += (emp.hourlyRate || 0) * durationHrs
+                const empSalary = (emp.hourlyRate || 0) * durationHrs
+                salary += empSalary
+                
+                const empName = emp.user?.name || "Employé inconnu"
+                if (!employeeBreakdown[emp.id]) {
+                    employeeBreakdown[emp.id] = { name: empName, hours: 0, salary: 0 }
+                }
+                employeeBreakdown[emp.id].hours += durationHrs
+                employeeBreakdown[emp.id].salary += empSalary
             })
         })
         
@@ -88,7 +97,7 @@ export async function getDashboardStats() {
         const totalVehicleCost = count * avgVehicleCost
         const profit = revenue - salary - totalVehicleCost
         
-        return { count, revenue, hours, salary, profit }
+        return { count, revenue, hours, salary, profit, totalVehicleCost, employeeBreakdown: Object.values(employeeBreakdown) }
     }
 
     const weekMetrics = calculateMetrics(jobsWeekRaw)

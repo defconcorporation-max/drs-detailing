@@ -15,14 +15,7 @@ export default async function AdminDashboard() {
 
     const formatMoney = (val: number) => new Intl.NumberFormat('fr-CA', { style: 'currency', currency: 'CAD' }).format(val)
 
-    const cards = [
-        { label: "Jobs (Semaine)", value: stats.week.count, icon: Briefcase, desc: `${stats.week.hours.toFixed(1)}h planifiées` },
-        { label: "Chiffre d'Affaires (Semaine)", value: formatMoney(stats.week.revenue), icon: DollarSign, desc: "Revenus bruts" },
-        { label: "Coût Salaire (Semaine)", value: formatMoney(stats.week.salary), icon: Users, desc: "Coût employé estimé" },
-        { label: "Profit (Semaine)", value: formatMoney(stats.week.profit), icon: PiggyBank, desc: `CA - Salaires - (${stats.week.count}x${stats.avgVehicleCost}$ mat.)` },
-        { label: "Profit (Mois)", value: formatMoney(stats.month.profit), icon: TrendingUp, desc: "Ce mois-ci" },
-        { label: "Profit (Année)", value: formatMoney(stats.year.profit), icon: Calendar, desc: "Cette année" },
-    ]
+
 
     return (
         <div className="space-y-8">
@@ -108,24 +101,74 @@ export default async function AdminDashboard() {
 
 
             {/* Stats Grid */}
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {cards.map((stat, i) => {
-                    const Icon = stat.icon
-                    return (
-                        <Card key={i} className="hover:shadow-md transition-shadow">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{stat.label}</CardTitle>
-                                <div className="rounded-lg bg-muted/50 p-2">
-                                    <Icon className="h-4 w-4 text-primary" />
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+                {/* CA Semaine */}
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Chiffre d'Affaires (Semaine)</CardTitle>
+                        <div className="rounded-lg bg-muted/50 p-2"><DollarSign className="h-4 w-4 text-primary" /></div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-black">{formatMoney(stats.week.revenue)}</div>
+                        <p className="text-[10px] text-muted-foreground font-medium">Pour {stats.week.count} jobs ({stats.week.hours.toFixed(1)}h)</p>
+                    </CardContent>
+                </Card>
+
+                {/* Coût Salaires */}
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Coût Salaires (Semaine)</CardTitle>
+                        <div className="rounded-lg bg-muted/50 p-2"><Users className="h-4 w-4 text-primary" /></div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-black">{formatMoney(stats.week.salary)}</div>
+                        <div className="mt-1 space-y-1">
+                            {stats.week.employeeBreakdown?.map((emp: any) => (
+                                <div key={emp.name} className="flex justify-between text-[10px] text-muted-foreground">
+                                    <span>{emp.name} ({emp.hours.toFixed(1)}h)</span>
+                                    <span className="font-semibold">{formatMoney(emp.salary)}</span>
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-black">{stat.value}</div>
-                                <p className="text-[10px] text-muted-foreground font-medium">{stat.desc}</p>
-                            </CardContent>
-                        </Card>
-                    )
-                })}
+                            ))}
+                            {(!stats.week.employeeBreakdown || stats.week.employeeBreakdown.length === 0) && (
+                                <div className="text-[10px] text-muted-foreground">Aucun employé assigné</div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Profit Semaine */}
+                <Card className="hover:shadow-md transition-shadow bg-primary/5 border-primary/20">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-primary">Profit (Semaine)</CardTitle>
+                        <div className="rounded-lg bg-primary/10 p-2"><PiggyBank className="h-4 w-4 text-primary" /></div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-black text-primary">{formatMoney(stats.week.profit)}</div>
+                        <div className="mt-2 space-y-0.5 text-[10px] text-muted-foreground">
+                            <div className="flex justify-between"><span>Revenus</span><span>{formatMoney(stats.week.revenue)}</span></div>
+                            <div className="flex justify-between"><span>Salaires</span><span className="text-red-500/70">-{formatMoney(stats.week.salary)}</span></div>
+                            <div className="flex justify-between"><span>Matériel ({stats.week.count}x{stats.avgVehicleCost}$)</span><span className="text-red-500/70">-{formatMoney(stats.week.totalVehicleCost)}</span></div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Profit Mois / Année */}
+                <Card className="hover:shadow-md transition-shadow flex flex-col justify-between">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Profit Global</CardTitle>
+                        <div className="rounded-lg bg-muted/50 p-2"><TrendingUp className="h-4 w-4 text-primary" /></div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <div>
+                            <div className="text-sm text-muted-foreground font-medium">Ce mois-ci</div>
+                            <div className="text-lg font-black">{formatMoney(stats.month.profit)}</div>
+                        </div>
+                        <div>
+                            <div className="text-sm text-muted-foreground font-medium">Cette année</div>
+                            <div className="text-lg font-black">{formatMoney(stats.year.profit)}</div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Jobs du Jour - En gros */}
