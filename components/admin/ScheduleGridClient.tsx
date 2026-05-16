@@ -347,7 +347,7 @@ function JobCard({
     const heightPx = Math.max(28, (durationMin / 60) * 52)
     const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
 
-    const address = job.client?.clientProfile?.address || ""
+    const address = job.client?.address || ""
     let customColor = ""
     if (cityColors && address) {
         for (const [city, color] of Object.entries(cityColors)) {

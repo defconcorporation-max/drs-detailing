@@ -28,7 +28,7 @@ export function JobList({ jobs, clients, employees, services, cityColors = {} }:
                 </TableHeader>
                 <TableBody>
                     {jobs.map((job) => {
-                        const address = job.client?.clientProfile?.address || ""
+                        const address = job.client?.address || ""
                         let customColor = ""
                         let matchedCity = ""
                         if (cityColors && address) {

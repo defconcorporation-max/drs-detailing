@@ -156,9 +156,11 @@ export default async function ClientsPage({
                     <p className="text-muted-foreground text-sm">Gérez vos clients individuels et vos comptes flottes B2B.</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                    <Link href="/admin/clients/map">
-                        <Button variant="outline" className="gap-2"><MapPin size={16} /> Carte</Button>
-                    </Link>
+                    <Button variant="outline" className="gap-2" asChild>
+                        <Link href="/admin/clients/map">
+                            <MapPin size={16} /> Carte
+                        </Link>
+                    </Button>
                     <BusinessDialog />
                     <ClientDialog />
                 </div>
