@@ -163,8 +163,8 @@ export function NewJobDialog({
         return 0
     })
     const formContent = (
-        <form action={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        <form action={handleSubmit} className="flex flex-col h-full">
+            <div className="flex-1 space-y-5 px-5 py-4 min-h-0">
 
                 {/* Date + Heure */}
                 <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-4">
@@ -362,12 +362,14 @@ export function NewJobDialog({
                             )}
                         </SheetTrigger>
                     )}
-                    <SheetContent side="bottom" className="h-[95dvh] flex flex-col rounded-t-2xl p-0">
-                        <SheetHeader className="px-5 pt-5 pb-2 border-b">
+                    <SheetContent side="bottom" className="max-h-[90dvh] flex flex-col rounded-t-2xl p-0">
+                        <SheetHeader className="px-5 pt-5 pb-2 border-b shrink-0">
                             <div className="mx-auto w-10 h-1 rounded-full bg-muted-foreground/30 mb-3" />
                             <SheetTitle className="font-display text-lg uppercase">{title}</SheetTitle>
                         </SheetHeader>
-                        {formContent}
+                        <div className="overflow-y-auto flex-1 min-h-0">
+                            {formContent}
+                        </div>
                     </SheetContent>
                 </Sheet>
             </div>
@@ -385,10 +387,12 @@ export function NewJobDialog({
                         </DialogTrigger>
                     )}
                     <DialogContent className="flex max-h-[90vh] max-w-lg flex-col rounded-2xl p-0">
-                        <DialogHeader className="px-5 pt-5 pb-2 border-b">
+                        <DialogHeader className="px-5 pt-5 pb-2 border-b shrink-0">
                             <DialogTitle className="font-display text-xl uppercase">{title}</DialogTitle>
                         </DialogHeader>
-                        {formContent}
+                        <div className="overflow-y-auto flex-1 min-h-0">
+                            {formContent}
+                        </div>
                     </DialogContent>
                 </Dialog>
             </div>
