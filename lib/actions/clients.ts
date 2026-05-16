@@ -74,23 +74,35 @@ export async function updateClientProfile(userId: string, data: FormData) {
     const address = data.get('address') as string
 
     try {
+        // First ensure the clientProfile exists
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { clientProfile: true }
+        })
+
+        if (!user) return { error: "Utilisateur introuvable" }
+
         await prisma.user.update({
             where: { id: userId },
             data: {
                 name,
-                email,
+                email: email || undefined,
                 phone,
-                clientProfile: {
-                    update: { address }
-                }
+                clientProfile: user.clientProfile
+                    ? { update: { address } }
+                    : { create: { address } }
             }
         })
         revalidatePath(`/admin/clients/${userId}`)
+        revalidatePath('/admin/clients')
+        revalidatePath('/admin/schedule')
         return { success: true }
     } catch (e) {
+        console.error("updateClientProfile error:", e)
         return { error: "Erreur mise à jour" }
     }
 }
+
 
 export async function addVehicle(clientId: string, data: FormData) {
     const make = data.get('make') as string
