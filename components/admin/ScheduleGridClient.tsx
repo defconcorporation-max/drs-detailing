@@ -349,10 +349,12 @@ function JobCard({
 
     const address = job.client?.address || ""
     let customColor = ""
+    let matchedCity = ""
     if (cityColors && address) {
         for (const [city, color] of Object.entries(cityColors)) {
             if (address.toLowerCase().includes(city.toLowerCase())) {
                 customColor = color
+                matchedCity = city
                 break
             }
         }
@@ -392,14 +394,18 @@ function JobCard({
                     </div>
                     {compact ? (
                         <>
-                            <div className="truncate font-bold leading-tight">{clientName}</div>
+                            <div className="truncate font-bold leading-tight">
+                                {clientName} {matchedCity && <span className="opacity-90 font-normal">({matchedCity})</span>}
+                            </div>
                             <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
                                 {[vehicleStr, servicesStr || "Sans service", assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
                             </div>
                         </>
                     ) : (
                         <>
-                            <div className="shrink-0 truncate font-bold leading-tight">{clientName}</div>
+                            <div className="shrink-0 truncate font-bold leading-tight">
+                                {clientName} {matchedCity && <span className="opacity-90 font-normal">({matchedCity})</span>}
+                            </div>
                             {vehicleStr ? (
                                 <div className="shrink-0 truncate text-[10px] leading-tight opacity-90" title={vehicleStr}>
                                     {vehicleStr}
