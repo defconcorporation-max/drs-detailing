@@ -17,10 +17,9 @@ export async function loginAdmin(formData: FormData) {
     const isValid = (adminUser && adminUser.password === password) || password === 'admin'
 
     if (isValid) {
-        // Set cookie
         const cookieStore = await cookies()
-        cookieStore.set("drs_admin_session", "true", { httpOnly: true, path: '/' })
-        return { success: true } // Return object for client handling
+        cookieStore.set("drs_admin_session", "true", { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 30 })
+        return { success: true }
     } else {
         return { error: "Mot de passe incorrect" }
     }
@@ -38,7 +37,7 @@ export async function loginEmployee(formData: FormData) {
     const okRole = user && (user.role === "EMPLOYEE" || user.role === "ADMIN")
     if (user && okRole && user.password === password) {
         const cookieStore = await cookies()
-        cookieStore.set("drs_employee_session", user.id, { httpOnly: true, path: "/" })
+        cookieStore.set("drs_employee_session", user.id, { httpOnly: true, path: "/", maxAge: 60 * 60 * 24 * 30 })
         return { success: true }
     }
     return { error: "Identifiants invalides" }

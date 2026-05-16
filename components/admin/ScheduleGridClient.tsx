@@ -449,30 +449,21 @@ function JobCard({
                     </div>
                     {compact ? (
                         <>
-                            <div className="flex items-center gap-1 min-w-0">
-                                <div className="truncate font-bold leading-tight">{clientName}</div>
-                                {matchedCity && <div className="shrink-0 text-[9px] opacity-90 font-normal">({matchedCity})</div>}
-                            </div>
+                            <div className="truncate font-bold leading-tight">{clientName}</div>
                             <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
-                                {[vehicleStr, servicesStr || "Sans service", assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
+                                {[vehicleStr, servicesStr || "Sans service", matchedCity ? `📍 ${matchedCity}` : null, assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
                             </div>
                         </>
                     ) : (
                         <>
-                            <div className="flex items-center gap-1 min-w-0">
-                                <div className="shrink-0 truncate font-bold leading-tight">{clientName}</div>
-                                {matchedCity && <div className="shrink-0 text-[10px] opacity-90 font-normal">({matchedCity})</div>}
-                            </div>
+                            <div className="shrink-0 truncate font-bold leading-tight">{clientName}</div>
                             {vehicleStr ? (
                                 <div className="shrink-0 truncate text-[10px] leading-tight opacity-90" title={vehicleStr}>
                                     {vehicleStr}
                                 </div>
                             ) : null}
-                            <div
-                                className="min-h-0 flex-1 text-[10px] leading-tight opacity-85 line-clamp-2"
-                                title={servicesStr || undefined}
-                            >
-                                {servicesStr || <span className="opacity-70">Aucun service</span>}
+                            <div className="line-clamp-2 text-[10px] leading-tight opacity-90 mt-0.5">
+                                {[servicesStr || "Sans service", matchedCity ? `📍 ${matchedCity}` : null].filter(Boolean).join(" · ")}
                             </div>
                             <div className="mt-auto flex shrink-0 items-end justify-between gap-1 border-t border-black/10 pt-0.5 dark:border-white/15">
                                 <div className="min-w-0 flex-1 truncate text-[10px] font-medium" title={assigneesStr || undefined}>
