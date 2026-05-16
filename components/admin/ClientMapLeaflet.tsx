@@ -28,8 +28,17 @@ export function ClientMapLeaflet({ clients, cityColors }: Props) {
     const [selected, setSelected] = useState<ClientPin | null>(null)
     const [initialized, setInitialized] = useState(false)
 
+    let colorsObj: Record<string, string> = {}
+    if (typeof cityColors === "string") {
+        try { colorsObj = JSON.parse(cityColors) } catch {}
+        if (typeof colorsObj === "string") { try { colorsObj = JSON.parse(colorsObj) } catch {} }
+    } else {
+        colorsObj = cityColors || {}
+    }
+
     // Get city color based on address
     const getCityColor = (address: string) => {
+        if (!address) return "#3b82f6"
         const normalize = (s: string) => {
             let res = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
             res = res.replace(/[-_]/g, " ")
@@ -38,7 +47,7 @@ export function ClientMapLeaflet({ clients, cityColors }: Props) {
         }
         const normAddr = normalize(address)
 
-        for (const [city, color] of Object.entries(cityColors)) {
+        for (const [city, color] of Object.entries(colorsObj)) {
             if (normAddr.includes(normalize(city))) return color
         }
         return "#3b82f6" // default blue
@@ -185,9 +194,9 @@ export function ClientMapLeaflet({ clients, cityColors }: Props) {
                             </div>
                         )}
                     </Card>
-                    {Object.keys(cityColors).length > 0 && (
+                    {Object.keys(colorsObj).length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2 px-1">
-                            {Object.entries(cityColors).map(([city, color]) => (
+                            {Object.entries(colorsObj).map(([city, color]) => (
                                 <span
                                     key={city}
                                     className="text-xs px-2 py-0.5 rounded-full font-medium"

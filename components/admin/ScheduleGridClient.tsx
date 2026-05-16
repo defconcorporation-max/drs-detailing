@@ -350,7 +350,16 @@ function JobCard({
     const address = job.client?.address || ""
     let customColor = ""
     let matchedCity = ""
-    if (cityColors && address) {
+    
+    let colorsObj: Record<string, string> = {}
+    if (typeof cityColors === "string") {
+        try { colorsObj = JSON.parse(cityColors) } catch {}
+        if (typeof colorsObj === "string") { try { colorsObj = JSON.parse(colorsObj) } catch {} }
+    } else {
+        colorsObj = cityColors || {}
+    }
+
+    if (Object.keys(colorsObj).length > 0 && address) {
         const normalize = (s: string) => {
             let res = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
             res = res.replace(/[-_]/g, " ")
@@ -359,7 +368,7 @@ function JobCard({
         }
         const normAddr = normalize(address)
         
-        for (const [city, color] of Object.entries(cityColors)) {
+        for (const [city, color] of Object.entries(colorsObj)) {
             if (normAddr.includes(normalize(city))) {
                 customColor = color
                 matchedCity = city
@@ -402,8 +411,9 @@ function JobCard({
                     </div>
                     {compact ? (
                         <>
-                            <div className="truncate font-bold leading-tight">
-                                {clientName} {matchedCity && <span className="opacity-90 font-normal">({matchedCity})</span>}
+                            <div className="flex items-center gap-1 min-w-0">
+                                <div className="truncate font-bold leading-tight">{clientName}</div>
+                                {matchedCity && <div className="shrink-0 text-[9px] opacity-90 font-normal">({matchedCity})</div>}
                             </div>
                             <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
                                 {[vehicleStr, servicesStr || "Sans service", assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
@@ -411,8 +421,9 @@ function JobCard({
                         </>
                     ) : (
                         <>
-                            <div className="shrink-0 truncate font-bold leading-tight">
-                                {clientName} {matchedCity && <span className="opacity-90 font-normal">({matchedCity})</span>}
+                            <div className="flex items-center gap-1 min-w-0">
+                                <div className="shrink-0 truncate font-bold leading-tight">{clientName}</div>
+                                {matchedCity && <div className="shrink-0 text-[10px] opacity-90 font-normal">({matchedCity})</div>}
                             </div>
                             {vehicleStr ? (
                                 <div className="shrink-0 truncate text-[10px] leading-tight opacity-90" title={vehicleStr}>

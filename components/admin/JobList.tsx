@@ -31,7 +31,16 @@ export function JobList({ jobs, clients, employees, services, cityColors = {} }:
                         const address = job.client?.address || ""
                         let customColor = ""
                         let matchedCity = ""
-                        if (cityColors && address) {
+
+                        let colorsObj: Record<string, string> = {}
+                        if (typeof cityColors === "string") {
+                            try { colorsObj = JSON.parse(cityColors) } catch {}
+                            if (typeof colorsObj === "string") { try { colorsObj = JSON.parse(colorsObj) } catch {} }
+                        } else {
+                            colorsObj = cityColors || {}
+                        }
+
+                        if (Object.keys(colorsObj).length > 0 && address) {
                             const normalize = (s: string) => {
                                 let res = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
                                 res = res.replace(/[-_]/g, " ")
@@ -40,7 +49,7 @@ export function JobList({ jobs, clients, employees, services, cityColors = {} }:
                             }
                             const normAddr = normalize(address)
                             
-                            for (const [city, color] of Object.entries(cityColors)) {
+                            for (const [city, color] of Object.entries(colorsObj)) {
                                 if (normAddr.includes(normalize(city))) {
                                     customColor = color
                                     matchedCity = city
