@@ -273,8 +273,108 @@ export async function updateJobStatus(id: string, status: string) {
         })
         revalidatePath(`/employee/job/${id}`)
         revalidatePath('/admin/schedule')
+        revalidatePath(`/admin/job/${id}`)
         return { success: true }
     } catch (e) {
         return { error: "Erreur mise à jour statut" }
+    }
+}
+
+export async function getJobById(id: string) {
+    try {
+        const job = await prisma.job.findUnique({
+            where: { id },
+            include: {
+                client: { include: { user: true } },
+                vehicle: true,
+                services: { include: { service: true } },
+                employees: { include: { user: true } },
+                timeLogs: { orderBy: { startTime: 'asc' } },
+            }
+        })
+        if (!job) return null
+        // Serialize dates
+        return JSON.parse(JSON.stringify(job))
+    } catch (e) {
+        return null
+    }
+}
+
+export async function startJob(jobId: string) {
+    try {
+        const existing = await prisma.job.findUnique({ where: { id: jobId } })
+        if (!existing) return { error: "Job introuvable" }
+
+        await prisma.job.update({
+            where: { id: jobId },
+            data: {
+                status: "IN_PROGRESS",
+                startedAt: existing.startedAt ?? new Date(),
+            }
+        })
+        revalidatePath(`/admin/job/${jobId}`)
+        revalidatePath('/admin')
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur démarrage job" }
+    }
+}
+
+export async function completeJob(jobId: string) {
+    try {
+        const now = new Date()
+        await prisma.job.update({
+            where: { id: jobId },
+            data: {
+                status: "COMPLETED",
+                completedAt: now,
+            }
+        })
+        revalidatePath(`/admin/job/${jobId}`)
+        revalidatePath('/admin')
+        revalidatePath('/admin/schedule')
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur complétion job" }
+    }
+}
+
+export async function addJobPhotos(jobId: string, type: "before" | "after", urls: string[]) {
+    try {
+        const job = await prisma.job.findUnique({ where: { id: jobId } })
+        if (!job) return { error: "Job introuvable" }
+
+        const field = type === "before" ? "beforePhotos" : "afterPhotos"
+        const existing: string[] = job[field] ? JSON.parse(job[field] as string) : []
+        const merged = [...existing, ...urls]
+
+        await prisma.job.update({
+            where: { id: jobId },
+            data: { [field]: JSON.stringify(merged) }
+        })
+        revalidatePath(`/admin/job/${jobId}`)
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur ajout photos" }
+    }
+}
+
+export async function removeJobPhoto(jobId: string, type: "before" | "after", url: string) {
+    try {
+        const job = await prisma.job.findUnique({ where: { id: jobId } })
+        if (!job) return { error: "Job introuvable" }
+
+        const field = type === "before" ? "beforePhotos" : "afterPhotos"
+        const existing: string[] = job[field] ? JSON.parse(job[field] as string) : []
+        const filtered = existing.filter((u) => u !== url)
+
+        await prisma.job.update({
+            where: { id: jobId },
+            data: { [field]: JSON.stringify(filtered) }
+        })
+        revalidatePath(`/admin/job/${jobId}`)
+        return { success: true }
+    } catch (e) {
+        return { error: "Erreur suppression photo" }
     }
 }

@@ -190,6 +190,14 @@ model Job {
   inspections   Inspection[]
   timeLogs      TimeLog[]
 
+  // Photos avant/après
+  beforePhotos  String? // JSON array of URLs
+  afterPhotos   String? // JSON array of URLs
+
+  // Tracker de temps réel (pour le chrono "Commencer / Terminer")
+  startedAt     DateTime?
+  completedAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
