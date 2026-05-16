@@ -1,6 +1,7 @@
 import { getJobs, getScheduleSelectors } from "@/lib/actions/jobs"
 import { getCalendarEvents } from "@/lib/actions/events"
 import { getAllAvailabilities } from "@/lib/actions/availability"
+import { getCityColors } from "@/lib/actions/settings"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
 import { NewEventDialog } from "@/components/admin/NewEventDialog"
 import { ScheduleGridClient } from "@/components/admin/ScheduleGridClient"
@@ -50,17 +51,20 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     let events: any[] = []
     let selectors: any = { clients: [], employees: [], services: [] }
     let availabilities: any[] = []
+    let cityColors: Record<string, string> = {}
     try {
-        const [j, e, s, a] = await Promise.all([
+        const [j, e, s, a, cc] = await Promise.all([
             getJobs(),
             getCalendarEvents(),
             getScheduleSelectors(),
-            getAllAvailabilities(startDate, weekDays[6])
+            getAllAvailabilities(startDate, weekDays[6]),
+            getCityColors()
         ])
         jobs = j
         events = e
         selectors = s
         availabilities = a
+        cityColors = cc
     } catch (e) {
         console.error("[admin/schedule]", e)
         return (
@@ -147,20 +151,22 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                                 events={events}
                                 selectors={selectors}
                                 availabilities={availabilities}
+                                cityColors={cityColors}
                             />
                         </div>
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="list" className="mt-4">
+                <TabsContent value="list" className="mt-4 flex-1">
                     <Card>
                         <CardHeader>
                             <CardTitle>Liste des Jobs</CardTitle>
-                            <CardDescription>Tous les jobs (futurs et passés).</CardDescription>
+                            <CardDescription>Tous les rendez-vous de la période sélectionnée.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <JobList
                                 jobs={jobs}
+                                cityColors={cityColors}
                                 clients={selectors.clients}
                                 employees={selectors.employees}
                                 services={selectors.services}

@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building2, User } from "lucide-react"
+import { Building2, User, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
     Select,
@@ -155,7 +155,10 @@ export default async function ClientsPage({
                     <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Clients & Business</h2>
                     <p className="text-muted-foreground text-sm">Gérez vos clients individuels et vos comptes flottes B2B.</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                    <Link href="/admin/clients/map">
+                        <Button variant="outline" className="gap-2"><MapPin size={16} /> Carte</Button>
+                    </Link>
                     <BusinessDialog />
                     <ClientDialog />
                 </div>

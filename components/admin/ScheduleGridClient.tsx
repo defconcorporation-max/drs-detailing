@@ -33,6 +33,7 @@ type Props = {
     events?: any[]
     selectors: any
     availabilities: any[]
+    cityColors?: Record<string, string>
 }
 
 const START_HOUR = 6
@@ -40,7 +41,7 @@ const END_HOUR = 21
 
 const DRAG_MIME = "application/x-drs-job"
 
-export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, availabilities }: Props) {
+export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, availabilities, cityColors = {} }: Props) {
     const router = useRouter()
     const [slotOpen, setSlotOpen] = useState(false)
     const [prefillDate, setPrefillDate] = useState("")
@@ -276,7 +277,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                                             zIndex: 20,
                                                         }}
                                                     >
-                                                        <JobCard job={job} selectors={selectors} dragMime={DRAG_MIME} />
+                                                        <JobCard job={job} selectors={selectors} dragMime={DRAG_MIME} cityColors={cityColors} />
                                                     </div>
                                                 )
                                             })}
@@ -335,14 +336,27 @@ function JobCard({
     job,
     selectors,
     dragMime,
+    cityColors,
 }: {
     job: any
     selectors: any
     dragMime: string
+    cityColors?: Record<string, string>
 }) {
     const durationMin = job.durationMin || jobDurationMinutes(job.services || [])
     const heightPx = Math.max(28, (durationMin / 60) * 52)
     const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
+
+    const address = job.client?.clientProfile?.address || ""
+    let customColor = ""
+    if (cityColors && address) {
+        for (const [city, color] of Object.entries(cityColors)) {
+            if (address.toLowerCase().includes(city.toLowerCase())) {
+                customColor = color
+                break
+            }
+        }
+    }
 
     const vehicleStr = jobVehicleSummary(job)
     const servicesStr = jobServicesSummary(job)
@@ -369,6 +383,7 @@ function JobCard({
                     className={`absolute z-10 flex w-full cursor-grab flex-col overflow-hidden rounded-lg py-1.5 pl-5 pr-1.5 text-xs transition-all active:cursor-grabbing hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""} h-full`}
                     style={{
                         minHeight: "28px",
+                        ...(customColor ? { backgroundColor: customColor, color: "#fff", borderColor: customColor } : {})
                     }}
                     title={`Glisser pour déplacer — ${[clientName, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
                 >

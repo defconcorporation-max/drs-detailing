@@ -6,7 +6,7 @@ import { EditJobDialog } from "./EditJobDialog"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
-export function JobList({ jobs, clients, employees, services }: { jobs: any[], clients: any, employees: any, services: any }) {
+export function JobList({ jobs, clients, employees, services, cityColors = {} }: { jobs: any[], clients: any, employees: any, services: any, cityColors?: Record<string, string> }) {
 
     if (!jobs || jobs.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">Aucun job planifié.</div>
@@ -27,7 +27,21 @@ export function JobList({ jobs, clients, employees, services }: { jobs: any[], c
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {jobs.map((job) => (
+                    {jobs.map((job) => {
+                        const address = job.client?.clientProfile?.address || ""
+                        let customColor = ""
+                        let matchedCity = ""
+                        if (cityColors && address) {
+                            for (const [city, color] of Object.entries(cityColors)) {
+                                if (address.toLowerCase().includes(city.toLowerCase())) {
+                                    customColor = color
+                                    matchedCity = city
+                                    break
+                                }
+                            }
+                        }
+
+                        return (
                         <TableRow key={job.id}>
                             <TableCell className="font-medium">
                                 <div className="flex flex-col">
@@ -35,7 +49,17 @@ export function JobList({ jobs, clients, employees, services }: { jobs: any[], c
                                     <span className="text-xs text-muted-foreground">{format(new Date(job.scheduledDate), 'HH:mm')}</span>
                                 </div>
                             </TableCell>
-                            <TableCell>{job.client?.user?.name}</TableCell>
+                            <TableCell>
+                                <div>{job.client?.user?.name}</div>
+                                {matchedCity && (
+                                    <span 
+                                        className="text-[10px] px-1.5 py-0.5 rounded-sm text-white inline-block mt-1" 
+                                        style={{ backgroundColor: customColor }}
+                                    >
+                                        {matchedCity}
+                                    </span>
+                                )}
+                            </TableCell>
                             <TableCell>
                                 {job.vehicle ? `${job.vehicle.make} ${job.vehicle.model}` : '-'}
                             </TableCell>
@@ -58,7 +82,8 @@ export function JobList({ jobs, clients, employees, services }: { jobs: any[], c
                                 <EditJobDialog job={job} clients={clients} employees={employees} services={services} />
                             </TableCell>
                         </TableRow>
-                    ))}
+                        )
+                    })}
                 </TableBody>
             </Table>
         </div>
