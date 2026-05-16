@@ -48,8 +48,42 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
     const [prefillTime, setPrefillTime] = useState("09:00")
     const [dropTargetKey, setDropTargetKey] = useState<string | null>(null)
 
-    const [viewMode, setViewMode] = useState<"day" | "week">("week")
+    const [viewMode, setViewMode] = useState<"day" | "week">(() => {
+        if (typeof window !== "undefined") return window.innerWidth < 1024 ? "day" : "week"
+        return "week"
+    })
     const [selectedDayKey, setSelectedDayKey] = useState<string>("")
+    
+    // Swipe gestures
+    const [touchStart, setTouchStart] = useState<number | null>(null)
+    const [touchEnd, setTouchEnd] = useState<number | null>(null)
+    const minSwipeDistance = 50
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null)
+        setTouchStart(e.targetTouches[0].clientX)
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX)
+    }
+
+    const handleTouchEnd = () => {
+        if (!touchStart || !touchEnd) return
+        const distance = touchStart - touchEnd
+        const isLeftSwipe = distance > minSwipeDistance
+        const isRightSwipe = distance < -minSwipeDistance
+
+        if (isLeftSwipe || isRightSwipe) {
+            const currentIndex = weekMeta.findIndex(m => m.key === selectedDayKey)
+            if (isLeftSwipe && currentIndex < weekMeta.length - 1) {
+                setSelectedDayKey(weekMeta[currentIndex + 1].key)
+            }
+            if (isRightSwipe && currentIndex > 0) {
+                setSelectedDayKey(weekMeta[currentIndex - 1].key)
+            }
+        }
+    }
 
     const openSlot = useCallback((dateKey: string, hour: number) => {
         setPrefillDate(dateKey)
@@ -60,7 +94,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
     useEffect(() => {
         const today = weekMeta.find((m) => m.isToday)
         setSelectedDayKey(today ? today.key : weekMeta[0].key)
-        if (window.innerWidth < 768) {
+        if (typeof window !== "undefined" && window.innerWidth < 1024) {
             setViewMode("day")
         }
 
@@ -104,24 +138,28 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                 </div>
                 
                 {viewMode === "day" && (
-                    <div className="flex overflow-x-auto scrollbar-none gap-2 pb-1">
+                    <div className="grid grid-cols-7 w-full gap-1 pb-1">
                         {weekMeta.map((col) => (
                             <Button
                                 key={col.key}
                                 variant={selectedDayKey === col.key ? "default" : "outline"}
-                                size="sm"
+                                className={`flex-col h-auto py-2 px-0 gap-0 w-full ${selectedDayKey === col.key ? "shadow-md bg-primary text-primary-foreground ring-2 ring-primary/20" : "bg-card text-muted-foreground"}`}
                                 onClick={() => setSelectedDayKey(col.key)}
-                                className={`min-w-16 rounded-xl flex flex-col h-auto py-1.5 px-3 gap-0.5 ${selectedDayKey === col.key ? "shadow-md" : ""}`}
                             >
-                                <span className="text-[10px] uppercase opacity-80">{col.weekdayShort}</span>
-                                <span className="text-sm font-bold">{col.dayNum}</span>
+                                <span className="text-[10px] uppercase font-bold">{col.weekdayShort.substring(0, 3)}</span>
+                                <span className="text-sm font-black">{col.dayNum}</span>
                             </Button>
                         ))}
                     </div>
                 )}
             </div>
 
-            <div className="relative w-full overflow-x-auto scrollbar-thin scrollbar-thumb-sidebar-border/50">
+            <div 
+                className="relative w-full overflow-x-auto scrollbar-thin scrollbar-thumb-sidebar-border/50"
+                onTouchStart={viewMode === "day" ? handleTouchStart : undefined}
+                onTouchMove={viewMode === "day" ? handleTouchMove : undefined}
+                onTouchEnd={viewMode === "day" ? handleTouchEnd : undefined}
+            >
                 {/* Mobile Scroll Hint - only in week mode */}
                 {viewMode === "week" && (
                     <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-8 items-center justify-center bg-gradient-to-l from-background/80 to-transparent md:hidden">
