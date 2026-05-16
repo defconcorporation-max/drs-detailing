@@ -1,58 +1,108 @@
+export const dynamic = "force-dynamic"
+
 import { getClients } from "@/lib/actions/clients"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { getCityColors } from "@/lib/actions/settings"
+import { ClientMapLeaflet } from "@/components/admin/ClientMapLeaflet"
+import { MapPin, AlertCircle } from "lucide-react"
+
+type ClientPin = {
+    id: string
+    name: string
+    address: string
+    lat: number
+    lng: number
+    totalSpent: number
+    jobCount: number
+}
+
+/** Geocode an address using Nominatim (OpenStreetMap, no API key) */
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+    try {
+        const encoded = encodeURIComponent(address + ", Québec, Canada")
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`,
+            {
+                headers: { "User-Agent": "DRS-Detailing-Software/1.0" },
+                next: { revalidate: 86400 }, // Cache 24h
+            }
+        )
+        const data = await res.json()
+        if (data && data.length > 0) {
+            return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
+        }
+        return null
+    } catch {
+        return null
+    }
+}
 
 export default async function MapPage() {
-    const clients = await getClients()
-    // filter clients with address
+    const [clients, cityColors] = await Promise.all([
+        getClients(),
+        getCityColors(),
+    ])
+
     const clientsWithAddress = clients.filter((c: any) => c.clientProfile?.address)
+
+    // Geocode all addresses in parallel (with rate limiting — 1 req at a time to respect Nominatim)
+    const pins: ClientPin[] = []
+    for (const client of clientsWithAddress) {
+        const address = client.clientProfile?.address
+        if (!address) continue
+
+        // Use stored lat/lng if available
+        let lat = client.clientProfile?.latitude
+        let lng = client.clientProfile?.longitude
+
+        if (!lat || !lng) {
+            const coords = await geocodeAddress(address)
+            if (coords) {
+                lat = coords.lat
+                lng = coords.lng
+            }
+        }
+
+        if (lat && lng) {
+            const jobs = (client.clientProfile as any)?.jobs || []
+            pins.push({
+                id: client.id,
+                name: client.name || "Client",
+                address,
+                lat,
+                lng,
+                totalSpent: jobs.reduce((s: number, j: any) => s + (j.totalPrice || 0), 0),
+                jobCount: jobs.length,
+            })
+        }
+    }
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight">Carte des Clients</h2>
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Carte des Clients</h2>
+                    <p className="text-muted-foreground text-sm mt-1">
+                        {pins.length} client{pins.length !== 1 ? "s" : ""} géolocalisé{pins.length !== 1 ? "s" : ""}
+                        {clientsWithAddress.length - pins.length > 0 && (
+                            <span className="ml-2 text-amber-600">
+                                · {clientsWithAddress.length - pins.length} adresse(s) non géocodée(s)
+                            </span>
+                        )}
+                    </p>
+                </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card className="md:col-span-1">
-                    <CardHeader>
-                        <CardTitle>Liste Géographique</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {clientsWithAddress.map((client: any) => (
-                            <div key={client.id} className="flex items-start justify-between border-b pb-2 last:border-0">
-                                <div>
-                                    <div className="font-semibold">{client.name}</div>
-                                    <div className="text-sm text-muted-foreground">{client.clientProfile.address}</div>
-                                </div>
-                                <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.clientProfile.address)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    <Button size="sm" variant="outline" className="gap-2">
-                                        <MapPin size={14} />
-                                        Voir
-                                    </Button>
-                                </a>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-
-                <Card className="md:col-span-1 bg-muted/50 flex items-center justify-center min-h-[400px]">
-                    <div className="text-center p-6">
-                        <MapPin className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold">Intégration Carte Interactive</h3>
-                        <p className="text-sm text-muted-foreground mt-2">
-                            Pour afficher une carte interactive en temps réel, une clé API Google Maps est requise.
-                            <br />
-                            En attendant, utilisez les liens "Voir" pour ouvrir la localisation exacte.
-                        </p>
-                    </div>
-                </Card>
-            </div>
+            {pins.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground">
+                    <MapPin size={48} className="mb-4 opacity-30" />
+                    <h3 className="text-lg font-semibold mb-1">Aucun client géolocalisé</h3>
+                    <p className="text-sm max-w-sm">
+                        Ajoutez des adresses complètes dans les profils clients pour les voir apparaître sur la carte.
+                    </p>
+                </div>
+            ) : (
+                <ClientMapLeaflet clients={pins} cityColors={cityColors} />
+            )}
         </div>
     )
 }
