@@ -30,8 +30,16 @@ export function ClientMapLeaflet({ clients, cityColors }: Props) {
 
     // Get city color based on address
     const getCityColor = (address: string) => {
+        const normalize = (s: string) => {
+            let res = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            res = res.replace(/[-_]/g, " ")
+            res = res.replace(/\b(st)\b/g, "saint")
+            return res.replace(/\s+/g, " ").trim()
+        }
+        const normAddr = normalize(address)
+
         for (const [city, color] of Object.entries(cityColors)) {
-            if (address.toLowerCase().includes(city.toLowerCase())) return color
+            if (normAddr.includes(normalize(city))) return color
         }
         return "#3b82f6" // default blue
     }
