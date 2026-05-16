@@ -27,3 +27,30 @@ export async function updateAdminPassword(data: FormData) {
         return { error: "Erreur modification mot de passe" }
     }
 }
+
+/** Saves city->color map as JSON in SystemSetting */
+export async function updateCityColors(cityColors: Record<string, string>) {
+    try {
+        await prisma.systemSetting.upsert({
+            where: { id: "GLOBAL" },
+            update: { cityColors: JSON.stringify(cityColors) },
+            create: { id: "GLOBAL", averageVehicleCost: 7.0, cityColors: JSON.stringify(cityColors) }
+        })
+        revalidatePath('/admin/settings')
+        revalidatePath('/admin/schedule')
+        return { success: true }
+    } catch (e) {
+        console.error("updateCityColors error:", e)
+        return { error: "Erreur sauvegarde couleurs" }
+    }
+}
+
+export async function getCityColors(): Promise<Record<string, string>> {
+    try {
+        const setting = await prisma.systemSetting.findUnique({ where: { id: "GLOBAL" } })
+        if (!setting || !(setting as any).cityColors) return {}
+        return JSON.parse((setting as any).cityColors)
+    } catch {
+        return {}
+    }
+}

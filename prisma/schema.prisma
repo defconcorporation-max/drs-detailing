@@ -395,5 +395,6 @@ model CalendarEvent {
 model SystemSetting {
   id                 String   @id @default("GLOBAL")
   averageVehicleCost Float    @default(7.0)
+  cityColors         String?  // JSON: {"Laval": "#3b82f6", "Montréal": "#f59e0b", ...}
   updatedAt          DateTime @updatedAt
 }
