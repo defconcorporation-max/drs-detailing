@@ -112,8 +112,8 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
     const visibleDays = viewMode === "day" ? weekMeta.filter((m) => m.key === selectedDayKey) : weekMeta
     if (visibleDays.length === 0 && weekMeta.length > 0) visibleDays.push(weekMeta[0])
 
-    const gridColsClass = viewMode === "day" ? "grid-cols-[60px_1fr]" : "grid-cols-[60px_repeat(7,1fr)]"
-    const minWClass = viewMode === "day" ? "min-w-full" : "min-w-[1000px]"
+    const gridColsClass = viewMode === "day" ? "grid-cols-[60px_1fr]" : "grid-cols-[40px_repeat(7,1fr)] sm:grid-cols-[60px_repeat(7,1fr)]"
+    const minWClass = "min-w-full"
 
     return (
         <>
@@ -174,20 +174,20 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                     {visibleDays.map((col, i) => (
                         <div
                             key={col.key}
-                            className={`sticky top-0 z-20 border-b border-l p-2.5 text-center font-bold backdrop-blur-md transition-colors ${
+                            className={`sticky top-0 z-20 border-b border-l p-1 sm:p-2.5 text-center font-bold backdrop-blur-md transition-colors flex flex-col justify-center items-center ${
                                 col.isToday
                                     ? "border-primary/30 bg-primary/10 text-primary"
                                     : "bg-muted/50 text-muted-foreground/80"
                             }`}
                         >
-                            <div className="text-[10px] uppercase tracking-[0.2em] font-black opacity-60 mb-0.5">{col.weekdayShort}</div>
-                            <div className="text-2xl tracking-tighter">{col.dayNum}</div>
+                            <div className="text-[8px] sm:text-[10px] uppercase tracking-widest sm:tracking-[0.2em] font-black opacity-60 mb-0.5">{col.weekdayShort.substring(0, 3)}</div>
+                            <div className="text-sm sm:text-2xl tracking-tighter">{col.dayNum}</div>
                         </div>
                     ))}
 
                     {hours.map((hour) => (
                         <div key={hour} className="contents">
-                            <div className="sticky left-0 z-20 -mt-px border-b border-r bg-background/90 backdrop-blur-sm p-1.5 pr-3 text-right text-[10px] font-bold tabular-nums text-muted-foreground/70 uppercase">
+                            <div className="sticky left-0 z-20 -mt-px border-b border-r bg-background/90 backdrop-blur-sm p-1 sm:p-1.5 pr-1.5 sm:pr-3 text-right text-[8px] sm:text-[10px] font-bold tabular-nums text-muted-foreground/70 uppercase flex items-center justify-end">
                                 {hour}h
                             </div>
 
