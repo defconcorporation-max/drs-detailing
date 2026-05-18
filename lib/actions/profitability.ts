@@ -71,7 +71,73 @@ export async function getServiceProfitability() {
             }
         })
 
-        const validReport = report.filter(r => r.jobCount > 0)
+        const customJobs = await prisma.job.findMany({
+            where: {
+                status: 'COMPLETED',
+                customServiceName: { not: null }
+            },
+            include: {
+                timeLogs: true,
+                productUsages: {
+                    include: {
+                        item: true
+                    }
+                }
+            }
+        })
+
+        const customServiceMap = new Map()
+        customJobs.forEach(job => {
+            if (!job.customServiceName) return
+            
+            if (!customServiceMap.has(job.customServiceName)) {
+                customServiceMap.set(job.customServiceName, {
+                    totalRevenue: 0,
+                    totalLaborMinutes: 0,
+                    totalProductCost: 0,
+                    jobCount: 0
+                })
+            }
+            
+            const stats = customServiceMap.get(job.customServiceName)
+            stats.jobCount++
+            stats.totalRevenue += job.customServicePrice || 0
+            
+            let labor = job.timeLogs.reduce((acc, log) => acc + (log.durationMin || 0), 0)
+            if (labor === 0) {
+                if (job.startedAt && job.completedAt) {
+                    labor = Math.max(1, (job.completedAt.getTime() - job.startedAt.getTime()) / 60000)
+                } else if (job.durationMin) {
+                    labor = job.durationMin
+                } else {
+                    labor = 60
+                }
+            }
+            stats.totalLaborMinutes += labor
+            
+            if (job.productUsages) {
+                job.productUsages.forEach(usage => {
+                    stats.totalProductCost += usage.quantityUsed * 0.05
+                })
+            }
+        })
+
+        const customReport = Array.from(customServiceMap.entries()).map(([name, stats]) => {
+            const avgProfitPerJob = stats.jobCount > 0 ? (stats.totalRevenue - stats.totalProductCost) / stats.jobCount : 0
+            const profitPerHour = stats.totalLaborMinutes > 0 ? (avgProfitPerJob / (stats.totalLaborMinutes / 60)) : 0
+            
+            return {
+                name: `${name} (Custom)`,
+                jobCount: stats.jobCount,
+                totalRevenue: stats.totalRevenue,
+                totalProductCost: stats.totalProductCost,
+                avgProfitPerJob,
+                profitPerHour: parseFloat(profitPerHour.toFixed(2))
+            }
+        })
+
+        const fullReport = [...report, ...customReport]
+        const validReport = fullReport.filter(r => r.jobCount > 0)
         if (validReport.length === 0) throw new Error("No data")
         return validReport.sort((a, b) => b.profitPerHour - a.profitPerHour)
     } catch (e) {
