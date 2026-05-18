@@ -1,10 +1,10 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { updateAdminPassword } from "@/lib/actions/settings"
-import { getCityColors } from "@/lib/actions/settings"
+import { getCityColors, getServiceZones } from "@/lib/actions/settings"
 import { getServices, createService } from "@/lib/actions/services"
 import { updateSystemSettings } from "@/lib/actions/dashboard"
-import { CityColorManager } from "@/components/admin/CityColorManager"
+import { ZoneMapSettings } from "@/components/admin/ZoneMapSettings"
 import prisma from "@/lib/db"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,7 +25,7 @@ import {
 
 export default async function SettingsPage() {
     const services = await getServices()
-    const cityColors = await getCityColors()
+    const serviceZones = await getServiceZones()
     let setting = await prisma.systemSetting.findUnique({ where: { id: "GLOBAL" } })
     if (!setting) {
         setting = await prisma.systemSetting.create({ data: { id: "GLOBAL", averageVehicleCost: 7.0 } })
@@ -38,7 +38,7 @@ export default async function SettingsPage() {
             <Tabs defaultValue="general" className="w-full">
                 <TabsList className="mb-6 flex-wrap h-auto gap-1">
                     <TabsTrigger value="general">GÃ©nÃ©ral</TabsTrigger>
-                    <TabsTrigger value="cities">Couleurs Villes</TabsTrigger>
+                    <TabsTrigger value="cities">Zones de Service</TabsTrigger>
                     <TabsTrigger value="services">Services & Tarifs</TabsTrigger>
                     <TabsTrigger value="security">SÃ©curitÃ© Admin</TabsTrigger>
                 </TabsList>
@@ -69,13 +69,13 @@ export default async function SettingsPage() {
                 <TabsContent value="cities" className="mt-0">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Couleurs par Ville</CardTitle>
+                            <CardTitle>Zones de service</CardTitle>
                             <CardDescription>
-                                Associez une couleur Ã  chaque ville du QuÃ©bec. Ces couleurs apparaÃ®tront sur le calendrier pour identifier rapidement les secteurs.
+                                Définissez vos zones d'opération sur la carte. Le système calculera automatiquement la couleur en fonction de la géolocalisation des clients.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <CityColorManager initialColors={cityColors} />
+                            <ZoneMapSettings initialGeoJson={serviceZones} />
                         </CardContent>
                     </Card>
                 </TabsContent>

@@ -1,7 +1,7 @@
 import { getJobs, getScheduleSelectors } from "@/lib/actions/jobs"
 import { getCalendarEvents } from "@/lib/actions/events"
 import { getAllAvailabilities } from "@/lib/actions/availability"
-import { getCityColors } from "@/lib/actions/settings"
+import { getServiceZones } from "@/lib/actions/settings"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
 import { NewEventDialog } from "@/components/admin/NewEventDialog"
 import { ScheduleGridClient } from "@/components/admin/ScheduleGridClient"
@@ -51,20 +51,20 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     let events: any[] = []
     let selectors: any = { clients: [], employees: [], services: [] }
     let availabilities: any[] = []
-    let cityColors: Record<string, string> = {}
+    let serviceZones: any = null
     try {
-        const [j, e, s, a, cc] = await Promise.all([
+        const [j, e, s, a, sz] = await Promise.all([
             getJobs(),
             getCalendarEvents(),
             getScheduleSelectors(),
             getAllAvailabilities(startDate, weekDays[6]),
-            getCityColors()
+            getServiceZones()
         ])
         jobs = j
         events = e
         selectors = s
         availabilities = a
-        cityColors = cc
+        serviceZones = sz
     } catch (e) {
         console.error("[admin/schedule]", e)
         return (
@@ -151,7 +151,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                                 events={events}
                                 selectors={selectors}
                                 availabilities={availabilities}
-                                cityColors={cityColors}
+                                serviceZones={serviceZones}
                             />
                         </div>
                     </Card>
@@ -166,7 +166,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                         <CardContent>
                             <JobList
                                 jobs={jobs}
-                                cityColors={cityColors}
+                                serviceZones={serviceZones}
                                 clients={selectors.clients}
                                 employees={selectors.employees}
                                 services={selectors.services}

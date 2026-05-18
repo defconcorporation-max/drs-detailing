@@ -396,5 +396,6 @@ model SystemSetting {
   id                 String   @id @default("GLOBAL")
   averageVehicleCost Float    @default(7.0)
   cityColors         String?  // JSON: {"Laval": "#3b82f6", "Montréal": "#f59e0b", ...}
+  serviceZones       String?  // JSON GeoJSON FeatureCollection
   updatedAt          DateTime @updatedAt
 }

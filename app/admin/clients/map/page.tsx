@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic"
 
 import { getClients } from "@/lib/actions/clients"
-import { getCityColors } from "@/lib/actions/settings"
+import { getServiceZones } from "@/lib/actions/settings"
 import { ClientMapLeaflet } from "@/components/admin/ClientMapLeaflet"
 import { MapPin, AlertCircle } from "lucide-react"
 
@@ -37,9 +37,9 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
 }
 
 export default async function MapPage() {
-    const [clients, cityColors] = await Promise.all([
+    const [clients, serviceZones] = await Promise.all([
         getClients(),
-        getCityColors(),
+        getServiceZones(),
     ])
 
     const clientsWithAddress = clients.filter((c: any) => c.clientProfile?.address)
@@ -101,7 +101,7 @@ export default async function MapPage() {
                     </p>
                 </div>
             ) : (
-                <ClientMapLeaflet clients={pins} cityColors={cityColors} />
+                <ClientMapLeaflet clients={pins} serviceZones={serviceZones} />
             )}
         </div>
     )

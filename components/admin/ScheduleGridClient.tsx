@@ -11,6 +11,7 @@ import { NewJobDialog } from "@/components/admin/NewJobDialog"
 import { jobDurationMinutes } from "@/lib/job-metrics"
 import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
 import { localDateKey, localHour, localMinute } from "@/lib/date-local"
+import { getZoneFromLocation } from "@/lib/geo"
 import {
     formatJobPrice,
     jobAssigneesNames,
@@ -33,7 +34,7 @@ type Props = {
     events?: any[]
     selectors: any
     availabilities: any[]
-    cityColors?: Record<string, string>
+    serviceZones?: any
 }
 
 const START_HOUR = 6
@@ -41,7 +42,7 @@ const END_HOUR = 21
 
 const DRAG_MIME = "application/x-drs-job"
 
-export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, availabilities, cityColors = {} }: Props) {
+export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, availabilities, serviceZones = null }: Props) {
     const router = useRouter()
     const [slotOpen, setSlotOpen] = useState(false)
     const [prefillDate, setPrefillDate] = useState("")
@@ -315,7 +316,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                                             zIndex: 20,
                                                         }}
                                                     >
-                                                        <JobCard job={job} selectors={selectors} dragMime={DRAG_MIME} cityColors={cityColors} />
+                                                        <JobCard job={job} selectors={selectors} dragMime={DRAG_MIME} serviceZones={serviceZones} />
                                                     </div>
                                                 )
                                             })}
@@ -374,44 +375,27 @@ function JobCard({
     job,
     selectors,
     dragMime,
-    cityColors,
+    serviceZones,
 }: {
     job: any
     selectors: any
     dragMime: string
-    cityColors?: Record<string, string>
+    serviceZones?: any
 }) {
     const durationMin = job.durationMin || jobDurationMinutes(job.services || [])
     const heightPx = Math.max(28, (durationMin / 60) * 52)
     const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
 
-    const address = job.client?.address || ""
+    const lat = job.client?.latitude
+    const lng = job.client?.longitude
     let customColor = ""
-    let matchedCity = ""
+    let matchedZone = ""
     
-    let colorsObj: Record<string, string> = {}
-    if (typeof cityColors === "string") {
-        try { colorsObj = JSON.parse(cityColors) } catch {}
-        if (typeof colorsObj === "string") { try { colorsObj = JSON.parse(colorsObj) } catch {} }
-    } else {
-        colorsObj = cityColors || {}
-    }
-
-    if (Object.keys(colorsObj).length > 0 && address) {
-        const normalize = (s: string) => {
-            let res = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-            res = res.replace(/[-_]/g, " ")
-            res = res.replace(/\b(st)\b/g, "saint")
-            return res.replace(/\s+/g, " ").trim()
-        }
-        const normAddr = normalize(address)
-        
-        for (const [city, color] of Object.entries(colorsObj)) {
-            if (normAddr.includes(normalize(city))) {
-                customColor = color
-                matchedCity = city
-                break
-            }
+    if (lat && lng && serviceZones) {
+        const zoneFeature = getZoneFromLocation(lat, lng, serviceZones)
+        if (zoneFeature) {
+            customColor = zoneFeature.properties?.color || ""
+            matchedZone = zoneFeature.properties?.name || ""
         }
     }
 
@@ -451,7 +435,7 @@ function JobCard({
                         <>
                             <div className="truncate font-bold leading-tight">{clientName}</div>
                             <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
-                                {[vehicleStr, servicesStr || "Sans service", matchedCity ? `📍 ${matchedCity}` : null, assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
+                                {[vehicleStr, servicesStr || "Sans service", matchedZone ? `📍 ${matchedZone}` : null, assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
                             </div>
                         </>
                     ) : (
@@ -463,7 +447,7 @@ function JobCard({
                                 </div>
                             ) : null}
                             <div className="line-clamp-2 text-[10px] leading-tight opacity-90 mt-0.5">
-                                {[servicesStr || "Sans service", matchedCity ? `📍 ${matchedCity}` : null].filter(Boolean).join(" · ")}
+                                {[servicesStr || "Sans service", matchedZone ? `📍 ${matchedZone}` : null].filter(Boolean).join(" · ")}
                             </div>
                             <div className="mt-auto flex shrink-0 items-end justify-between gap-1 border-t border-black/10 pt-0.5 dark:border-white/15">
                                 <div className="min-w-0 flex-1 truncate text-[10px] font-medium" title={assigneesStr || undefined}>

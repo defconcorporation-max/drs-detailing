@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, DollarSign, Car, TrendingUp, Users } from "lucide-react"
 import Link from "next/link"
+import { getZoneFromLocation } from "@/lib/geo"
 
 type ClientPin = {
     id: string
@@ -19,38 +20,26 @@ type ClientPin = {
 
 type Props = {
     clients: ClientPin[]
-    cityColors: Record<string, string>
+    serviceZones?: any
 }
 
-export function ClientMapLeaflet({ clients, cityColors }: Props) {
+export function ClientMapLeaflet({ clients, serviceZones = null }: Props) {
     const mapRef = useRef<HTMLDivElement>(null)
     const leafletMap = useRef<any>(null)
     const [selected, setSelected] = useState<ClientPin | null>(null)
     const [initialized, setInitialized] = useState(false)
 
-    let colorsObj: Record<string, string> = {}
-    if (typeof cityColors === "string") {
-        try { colorsObj = JSON.parse(cityColors) } catch {}
-        if (typeof colorsObj === "string") { try { colorsObj = JSON.parse(colorsObj) } catch {} }
-    } else {
-        colorsObj = cityColors || {}
-    }
-
-    // Get city color based on address
-    const getCityColor = (address: string) => {
-        if (!address) return "#3b82f6"
-        const normalize = (s: string) => {
-            let res = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-            res = res.replace(/[-_]/g, " ")
-            res = res.replace(/\b(st)\b/g, "saint")
-            return res.replace(/\s+/g, " ").trim()
+    const getClientZoneInfo = (lat: number, lng: number) => {
+        let color = "#3b82f6" // default blue
+        let zoneName = ""
+        if (serviceZones) {
+            const zoneFeature = getZoneFromLocation(lat, lng, serviceZones)
+            if (zoneFeature) {
+                color = zoneFeature.properties?.color || color
+                zoneName = zoneFeature.properties?.name || ""
+            }
         }
-        const normAddr = normalize(address)
-
-        for (const [city, color] of Object.entries(colorsObj)) {
-            if (normAddr.includes(normalize(city))) return color
-        }
-        return "#3b82f6" // default blue
+        return { color, zoneName }
     }
 
     useEffect(() => {
@@ -90,9 +79,22 @@ export function ClientMapLeaflet({ clients, cityColors }: Props) {
                 maxZoom: 19,
             }).addTo(map)
 
+            // Draw Service Zones if they exist
+            if (serviceZones && serviceZones.features) {
+                L.geoJSON(serviceZones, {
+                    style: (feature: any) => ({
+                        color: feature?.properties?.color || "#3b82f6",
+                        fillColor: feature?.properties?.color || "#3b82f6",
+                        fillOpacity: 0.15,
+                        weight: 2,
+                        dashArray: '5, 5'
+                    })
+                }).addTo(map)
+            }
+
             // Add markers for each client
             for (const client of clients) {
-                const color = getCityColor(client.address)
+                const { color, zoneName } = getClientZoneInfo(client.lat, client.lng)
 
                 // Custom colored marker
                 const icon = L.divIcon({
@@ -127,6 +129,7 @@ export function ClientMapLeaflet({ clients, cityColors }: Props) {
                     <div style="font-family: system-ui; min-width: 180px;">
                         <div style="font-weight: bold; font-size: 14px; margin-bottom: 4px;">${client.name}</div>
                         <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">${client.address}</div>
+                        ${zoneName ? `<div style="font-size: 11px; color: ${color}; font-weight: 600; margin-bottom: 8px;">📍 Zone: ${zoneName}</div>` : ""}
                         <div style="display: flex; gap: 12px; font-size: 12px;">
                             <span><strong>${client.totalSpent.toFixed(0)}$</strong> dépensé</span>
                             <span><strong>${client.jobCount}</strong> jobs</span>
@@ -144,7 +147,7 @@ export function ClientMapLeaflet({ clients, cityColors }: Props) {
         }
 
         initMap()
-    }, [clients, initialized, cityColors])
+    }, [clients, initialized, serviceZones])
 
     // Stats
     const topClients = [...clients].sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 5)

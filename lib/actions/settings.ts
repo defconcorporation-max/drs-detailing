@@ -54,3 +54,31 @@ export async function getCityColors(): Promise<Record<string, string>> {
         return {}
     }
 }
+
+/** Saves service zones GeoJSON in SystemSetting */
+export async function updateServiceZones(geoJsonStr: string) {
+    try {
+        await prisma.systemSetting.upsert({
+            where: { id: "GLOBAL" },
+            update: { serviceZones: geoJsonStr },
+            create: { id: "GLOBAL", averageVehicleCost: 7.0, serviceZones: geoJsonStr }
+        })
+        revalidatePath('/admin/settings')
+        revalidatePath('/admin/schedule')
+        revalidatePath('/admin/clients/map')
+        return { success: true }
+    } catch (e) {
+        console.error("updateServiceZones error:", e)
+        return { error: "Erreur sauvegarde des zones" }
+    }
+}
+
+export async function getServiceZones(): Promise<any | null> {
+    try {
+        const setting = await prisma.systemSetting.findUnique({ where: { id: "GLOBAL" } })
+        if (!setting || !setting.serviceZones) return null
+        return JSON.parse(setting.serviceZones)
+    } catch {
+        return null
+    }
+}

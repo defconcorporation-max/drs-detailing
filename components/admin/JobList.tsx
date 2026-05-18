@@ -6,7 +6,9 @@ import { EditJobDialog } from "./EditJobDialog"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
-export function JobList({ jobs, clients, employees, services, cityColors = {} }: { jobs: any[], clients: any, employees: any, services: any, cityColors?: Record<string, string> }) {
+import { getZoneFromLocation } from "@/lib/geo"
+
+export function JobList({ jobs, clients, employees, services, serviceZones = null }: { jobs: any[], clients: any, employees: any, services: any, serviceZones?: any }) {
 
     if (!jobs || jobs.length === 0) {
         return <div className="text-center py-10 text-muted-foreground">Aucun job planifié.</div>
@@ -28,33 +30,16 @@ export function JobList({ jobs, clients, employees, services, cityColors = {} }:
                 </TableHeader>
                 <TableBody>
                     {jobs.map((job) => {
-                        const address = job.client?.address || ""
+                        const lat = job.client?.latitude
+                        const lng = job.client?.longitude
                         let customColor = ""
-                        let matchedCity = ""
-
-                        let colorsObj: Record<string, string> = {}
-                        if (typeof cityColors === "string") {
-                            try { colorsObj = JSON.parse(cityColors) } catch {}
-                            if (typeof colorsObj === "string") { try { colorsObj = JSON.parse(colorsObj) } catch {} }
-                        } else {
-                            colorsObj = cityColors || {}
-                        }
-
-                        if (Object.keys(colorsObj).length > 0 && address) {
-                            const normalize = (s: string) => {
-                                let res = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                                res = res.replace(/[-_]/g, " ")
-                                res = res.replace(/\b(st)\b/g, "saint")
-                                return res.replace(/\s+/g, " ").trim()
-                            }
-                            const normAddr = normalize(address)
-                            
-                            for (const [city, color] of Object.entries(colorsObj)) {
-                                if (normAddr.includes(normalize(city))) {
-                                    customColor = color
-                                    matchedCity = city
-                                    break
-                                }
+                        let matchedZone = ""
+                        
+                        if (lat && lng && serviceZones) {
+                            const zoneFeature = getZoneFromLocation(lat, lng, serviceZones)
+                            if (zoneFeature) {
+                                customColor = zoneFeature.properties?.color || ""
+                                matchedZone = zoneFeature.properties?.name || ""
                             }
                         }
 
@@ -68,12 +53,12 @@ export function JobList({ jobs, clients, employees, services, cityColors = {} }:
                             </TableCell>
                             <TableCell>
                                 <div>{job.client?.user?.name}</div>
-                                {matchedCity && (
+                                {matchedZone && (
                                     <span 
                                         className="text-[10px] px-1.5 py-0.5 rounded-sm text-white inline-block mt-1" 
                                         style={{ backgroundColor: customColor }}
                                     >
-                                        {matchedCity}
+                                        {matchedZone}
                                     </span>
                                 )}
                             </TableCell>
