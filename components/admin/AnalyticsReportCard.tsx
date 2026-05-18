@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { renameCustomService } from "@/lib/actions/profitability"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Loader2, Edit2 } from "lucide-react"
 
 export function AnalyticsReportCard({ s, index }: { s: any; index: number }) {
@@ -30,12 +30,12 @@ export function AnalyticsReportCard({ s, index }: { s: any; index: number }) {
         setIsSubmitting(false)
         
         if (res.success) {
-            toast({ title: "Service renommé", description: `${res.updatedCount} job(s) mis à jour.` })
+            toast.success(`Service renommé : ${res.updatedCount} job(s) mis à jour.`)
             setIsEditing(false)
             setIsOpen(false)
             router.refresh()
         } else {
-            toast({ title: "Erreur", description: res.error, variant: "destructive" })
+            toast.error(res.error || "Erreur")
         }
     }
 
