@@ -60,14 +60,22 @@ export async function getServiceProfitability() {
             const avgProfitPerJob = jobCount > 0 ? (totalRevenue - totalProductCost) / jobCount : 0
             const profitPerHour = totalLaborMinutes > 0 ? (avgProfitPerJob / (totalLaborMinutes / 60)) : 0
 
+            // Collect completed jobs
+            const completedJobs = service.jobs
+                .map(js => js.job)
+                .filter(job => job.status === 'COMPLETED')
+
             // If jobCount is > 0 but it's a new service with no data, we still return the row
             return {
+                id: service.id,
                 name: service.name,
+                isCustom: false,
                 jobCount,
                 totalRevenue,
                 totalProductCost,
                 avgProfitPerJob,
-                profitPerHour: parseFloat(profitPerHour.toFixed(2))
+                profitPerHour: parseFloat(profitPerHour.toFixed(2)),
+                jobs: completedJobs
             }
         })
 
@@ -95,13 +103,15 @@ export async function getServiceProfitability() {
                     totalRevenue: 0,
                     totalLaborMinutes: 0,
                     totalProductCost: 0,
-                    jobCount: 0
+                    jobCount: 0,
+                    jobs: []
                 })
             }
             
             const stats = customServiceMap.get(job.customServiceName)
             stats.jobCount++
             stats.totalRevenue += job.customServicePrice || 0
+            stats.jobs.push(job)
             
             let labor = job.timeLogs.reduce((acc, log) => acc + (log.durationMin || 0), 0)
             if (labor === 0) {
@@ -127,12 +137,16 @@ export async function getServiceProfitability() {
             const profitPerHour = stats.totalLaborMinutes > 0 ? (avgProfitPerJob / (stats.totalLaborMinutes / 60)) : 0
             
             return {
+                id: `custom_${name}`,
                 name: `${name} (Custom)`,
+                isCustom: true,
+                originalName: name,
                 jobCount: stats.jobCount,
                 totalRevenue: stats.totalRevenue,
                 totalProductCost: stats.totalProductCost,
                 avgProfitPerJob,
-                profitPerHour: parseFloat(profitPerHour.toFixed(2))
+                profitPerHour: parseFloat(profitPerHour.toFixed(2)),
+                jobs: stats.jobs
             }
         })
 
@@ -148,5 +162,21 @@ export async function getServiceProfitability() {
             { name: "Lavage Int/Ext", jobCount: 84, totalRevenue: 12600, totalProductCost: 210, avgProfitPerJob: 147, profitPerHour: 74.80 },
             { name: "Décontamination", jobCount: 42, totalRevenue: 6300, totalProductCost: 315, avgProfitPerJob: 142, profitPerHour: 62.10 }
         ]
+    }
+}
+
+export async function renameCustomService(oldName: string, newName: string) {
+    try {
+        const count = await prisma.job.updateMany({
+            where: {
+                customServiceName: oldName
+            },
+            data: {
+                customServiceName: newName
+            }
+        })
+        return { success: true, updatedCount: count.count }
+    } catch (e) {
+        return { success: false, error: "Failed to update" }
     }
 }
