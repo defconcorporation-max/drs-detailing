@@ -197,17 +197,21 @@ export function ClientMapLeaflet({ clients, serviceZones = null }: Props) {
                             </div>
                         )}
                     </Card>
-                    {Object.keys(colorsObj).length > 0 && (
+                    {serviceZones?.features?.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-2 px-1">
-                            {Object.entries(colorsObj).map(([city, color]) => (
+                            {serviceZones.features.map((feature: any, idx: number) => {
+                                const name = feature.properties?.name || "Zone"
+                                const color = feature.properties?.color || "#3b82f6"
+                                return (
                                 <span
-                                    key={city}
+                                    key={idx}
                                     className="text-xs px-2 py-0.5 rounded-full font-medium"
                                     style={{ background: color + "22", color, border: `1px solid ${color}66` }}
                                 >
-                                    {city}
+                                    {name}
                                 </span>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
                 </div>
