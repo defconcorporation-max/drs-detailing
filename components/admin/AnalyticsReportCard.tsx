@@ -14,7 +14,6 @@ import { Loader2, Edit2 } from "lucide-react"
 
 export function AnalyticsReportCard({ s, index }: { s: any; index: number }) {
     const router = useRouter()
-    const { toast } = useToast()
     const [isOpen, setIsOpen] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
     const [newName, setNewName] = useState(s.originalName || "")

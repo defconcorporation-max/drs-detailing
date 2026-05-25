@@ -25,7 +25,7 @@ export default async function ReportsPage() {
 
             <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
                {stats.map((s, i) => (
-                    <AnalyticsReportCard key={s.id || s.name} s={s} index={i} />
+                    <AnalyticsReportCard key={s.name} s={s} index={i} />
                ))}
             </div>
 
