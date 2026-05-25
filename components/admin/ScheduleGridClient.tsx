@@ -18,7 +18,7 @@ import {
     jobServicesSummary,
     jobVehicleSummary,
 } from "@/lib/job-display"
-import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical, ChevronRight, MapPin } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical, ChevronRight, MapPin, Store, Truck } from "lucide-react"
 import { rescheduleJob } from "@/lib/actions/jobs"
 
 export type WeekColumnMeta = {
@@ -440,7 +440,20 @@ function JobCard({
                         </>
                     ) : (
                         <>
-                            <div className="shrink-0 truncate font-bold leading-tight">{clientName}</div>
+                            {/* Ligne client + badge shop/mobile */}
+                            <div className="shrink-0 flex items-center gap-1 min-w-0">
+                                <span className="truncate font-bold leading-tight flex-1">{clientName}</span>
+                                <span
+                                    className={`shrink-0 inline-flex items-center gap-0.5 rounded-full px-1 py-0 text-[8px] font-black uppercase leading-tight ${
+                                        job.isInShop
+                                            ? "bg-violet-500/20 text-violet-300"
+                                            : "bg-sky-500/20 text-sky-300"
+                                    }`}
+                                >
+                                    {job.isInShop ? <Store size={7} /> : <Truck size={7} />}
+                                    {job.isInShop ? "Shop" : "Mobile"}
+                                </span>
+                            </div>
                             {vehicleStr ? (
                                 <div className="shrink-0 truncate text-[10px] leading-tight opacity-90" title={vehicleStr}>
                                     {vehicleStr}
@@ -449,6 +462,13 @@ function JobCard({
                             <div className="line-clamp-2 text-[10px] leading-tight opacity-90 mt-0.5">
                                 {[servicesStr || "Sans service", matchedZone ? `📍 ${matchedZone}` : null].filter(Boolean).join(" · ")}
                             </div>
+                            {/* Adresse pour jobs mobiles */}
+                            {!job.isInShop && job.client?.address && heightPx >= 70 && (
+                                <div className="shrink-0 flex items-center gap-0.5 mt-0.5 text-[9px] leading-tight opacity-80 truncate">
+                                    <MapPin size={8} className="shrink-0" />
+                                    <span className="truncate">{job.client.address}</span>
+                                </div>
+                            )}
                             <div className="mt-auto flex shrink-0 items-end justify-between gap-1 border-t border-black/10 pt-0.5 dark:border-white/15">
                                 <div className="min-w-0 flex-1 truncate text-[10px] font-medium" title={assigneesStr || undefined}>
                                     {assigneesStr ? assigneesStr : <span className="opacity-70">Non assigné</span>}
@@ -477,6 +497,18 @@ function JobCard({
                             services={selectors.services}
                         />
                     </div>
+
+                    {/* Badge lieu de prestation */}
+                    <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold ${
+                        job.isInShop
+                            ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
+                            : "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                    }`}>
+                        {job.isInShop
+                            ? <><Store size={15} /> En shop — client en boutique</>
+                            : <><Truck size={15} /> Équipe mobile — déplacement</>}
+                    </div>
+
                     <div className="grid gap-2 text-sm">
                         <div className="flex items-center gap-2">
                             <CalendarIcon size={16} className="text-muted-foreground" />
@@ -501,20 +533,27 @@ function JobCard({
                             <Receipt size={16} className="shrink-0 text-muted-foreground" />
                             <span className="font-semibold">{priceStr ?? "—"}</span>
                         </div>
-                        {job.client?.address && (
-                            <div className="mt-1 flex items-start gap-2 border-t pt-2">
-                                <MapPin size={16} className="mt-0.5 shrink-0 text-primary" />
+                        {/* Adresse : toujours visible dans le popover pour les jobs mobiles */}
+                        {!job.isInShop && job.client?.address && (
+                            <div className="mt-1 flex items-start gap-2 rounded-lg bg-sky-500/8 border border-sky-500/20 px-2.5 py-2">
+                                <MapPin size={15} className="mt-0.5 shrink-0 text-sky-500" />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-bold uppercase text-muted-foreground">Adresse :</p>
-                                    <a 
+                                    <p className="text-[10px] font-bold uppercase text-sky-600 dark:text-sky-400 mb-0.5">Adresse de prestation</p>
+                                    <a
                                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.client.address)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-xs text-primary underline hover:text-primary/80 line-clamp-2"
+                                        className="text-xs text-sky-600 dark:text-sky-400 underline hover:opacity-80 line-clamp-2"
                                     >
                                         {job.client.address}
                                     </a>
                                 </div>
+                            </div>
+                        )}
+                        {job.isInShop && (
+                            <div className="mt-1 flex items-center gap-2 rounded-lg bg-violet-500/8 border border-violet-500/20 px-2.5 py-2 text-xs text-violet-600 dark:text-violet-400 font-medium">
+                                <Store size={13} />
+                                Prestation en boutique
                             </div>
                         )}
                     </div>
