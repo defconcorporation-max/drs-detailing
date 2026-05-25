@@ -46,7 +46,7 @@ export function NewJobDialog({
     const [date, setDate] = useState(prefillDate || "")
     const [time, setTime] = useState(prefillTime || "09:00")
 
-    // Sync crÃ©neau choisi sur le calendrier (dialog contrÃ´lÃ©)
+    // Sync créneau choisi sur le calendrier (dialog contrôlé)
     useEffect(() => {
         if (!open) return
         if (prefillDate) setDate(prefillDate)
@@ -139,6 +139,11 @@ export function NewJobDialog({
         } else {
             formData.delete("newVehicle")
         }
+        if (isInShop) {
+            formData.set("isInShop", "on")
+        } else {
+            formData.delete("isInShop")
+        }
         const res = await createJob(formData)
         if (res.success) {
             setOpen(false)
@@ -222,11 +227,11 @@ export function NewJobDialog({
                     </div>
                 </div>
 
-                {/* VÃ©hicule */}
+                {/* Véhicule */}
                 <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm font-semibold">
-                            <Car size={15} /> VÃ©hicule
+                            <Car size={15} /> Véhicule
                         </div>
                         {selectedClient && vehicles.length > 0 && (
                             <label className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -242,7 +247,7 @@ export function NewJobDialog({
 
                     {selectedClient && vehicles.length === 0 && (
                         <p className="text-sm text-amber-600 dark:text-amber-400">
-                            Aucun vÃ©hicule â€” remplissez la fiche ci-dessous.
+                            Aucun véhicule — remplissez la fiche ci-dessous.
                         </p>
                     )}
 
@@ -263,7 +268,7 @@ export function NewJobDialog({
                         <div className="grid gap-3">
                             <Select name="newVehicleType" required>
                                 <SelectTrigger className="h-11 rounded-xl">
-                                    <SelectValue placeholder="Type de vÃ©hicule *" />
+                                    <SelectValue placeholder="Type de véhicule *" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="SEDAN">Berline</SelectItem>
@@ -273,9 +278,9 @@ export function NewJobDialog({
                                     <SelectItem value="OTHER">Autre</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Input name="newVehicleYear" placeholder="AnnÃ©e" type="number" className="h-11" />
+                            <Input name="newVehicleYear" placeholder="Année" type="number" className="h-11" />
                             <Input name="newVehicleMake" placeholder="Marque *" className="h-11" required />
-                            <Input name="newVehicleModel" placeholder="ModÃ¨le *" className="h-11" required />
+                            <Input name="newVehicleModel" placeholder="Modèle *" className="h-11" required />
                         </div>
                     )}
                 </div>
@@ -294,7 +299,7 @@ export function NewJobDialog({
                                 />
                                 <label htmlFor={`ns-${s.id}`} className="flex-1 cursor-pointer">
                                     <div className="font-medium text-sm">{s.name}</div>
-                                    <div className="text-xs text-muted-foreground">{s.durationMin} min Â· {s.basePrice.toFixed(2)} $</div>
+                                    <div className="text-xs text-muted-foreground">{s.durationMin} min · {s.basePrice.toFixed(2)} $</div>
                                 </label>
                             </div>
                         ))}
@@ -310,7 +315,7 @@ export function NewJobDialog({
 
                 {/* Service custom */}
                 <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wide text-primary">Service personnalisÃ© (optionnel)</Label>
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-primary">Service personnalisé (optionnel)</Label>
                     <div className="space-y-2">
                         <Input
                             placeholder="Nom du service"
@@ -328,10 +333,10 @@ export function NewJobDialog({
                     </div>
                 </div>
 
-                {/* EmployÃ©s */}
+                {/* Employés */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-semibold">
-                        <Users size={15} /> EmployÃ©(s)
+                        <Users size={15} /> Employé(s)
                         {checking && <Loader2 className="size-3 animate-spin text-muted-foreground" />}
                     </div>
                     {selectedEmployees.map((id) => (
@@ -346,7 +351,7 @@ export function NewJobDialog({
                             const status = statusData?.status || "AVAILABLE"
                             const reason = statusData?.reason
                             const isAvail = status === "AVAILABLE"
-                            const indicator = isAvail ? "ðŸŸ¢" : status === "BUSY" ? "ðŸ”´" : "âšª"
+                            const indicator = isAvail ? "🟢" : status === "BUSY" ? "🔴" : "⚪"
                             return {
                                 value: e.id,
                                 label: `${indicator} ${e.user.name}${!isAvail && reason ? ` (${reason})` : ""}`,
@@ -358,7 +363,7 @@ export function NewJobDialog({
 
             <div className="border-t px-5 py-4">
                 <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold">
-                    CrÃ©er le rendez-vous
+                    Créer le rendez-vous
                 </Button>
             </div>
         </form>
@@ -368,7 +373,7 @@ export function NewJobDialog({
 
     return (
         <>
-            {/* Mobile : Sheet (tiroir plein Ã©cran depuis le bas) */}
+            {/* Mobile : Sheet (tiroir plein écran depuis le bas) */}
             <div className="sm:hidden">
                 <Sheet open={open} onOpenChange={setOpen}>
                     {!hideTrigger && (
