@@ -40,61 +40,63 @@ export type RetentionClient = {
     name: string
     phone: string | null
     email: string | null
-    lastBookingDate: Date
+    lastBookingDate: Date | null
     vehicleStr: string
-    daysSinceLastJob: number
+    daysSinceLastJob: number | null
 }
 
 export type RetentionBuckets = {
-    weeks2: RetentionClient[]
-    month1: RetentionClient[]
-    months2: RetentionClient[]
-    months3: RetentionClient[]
-    months3Plus: RetentionClient[]
+    recent: RetentionClient[]    // < 14 jours
+    weeks2: RetentionClient[]    // 14-29 jours
+    month1: RetentionClient[]    // 30-59 jours
+    months2: RetentionClient[]   // 60-89 jours
+    months3: RetentionClient[]   // 90-119 jours
+    months3Plus: RetentionClient[] // 120+ jours
+    never: RetentionClient[]     // Aucun historique
 }
 
 export async function getRetentionData(): Promise<RetentionBuckets> {
-    // On va chercher tous les jobs terminés, ordonnés par date (le plus récent en premier)
-    const completedJobs = await prisma.job.findMany({
-        where: { status: "COMPLETED" },
-        orderBy: { scheduledDate: 'desc' },
+    // On va chercher TOUS les clients pour n'oublier personne
+    const clients = await prisma.clientProfile.findMany({
         include: {
-            client: {
-                include: {
-                    user: true,
-                    vehicles: true
-                }
-            },
-            vehicle: true // Au cas où le véhicule est lié au job directement
+            user: true,
+            vehicles: true,
+            jobs: {
+                where: { status: "COMPLETED" },
+                orderBy: { scheduledDate: 'desc' },
+                take: 1, // Prendre seulement le plus récent
+                include: { vehicle: true }
+            }
         }
     })
 
     const buckets: RetentionBuckets = {
+        recent: [],
         weeks2: [],
         month1: [],
         months2: [],
         months3: [],
-        months3Plus: []
+        months3Plus: [],
+        never: []
     }
 
     const now = new Date()
-    
-    // On garde une trace des clients déjà traités pour n'avoir que leur job le plus récent
-    const processedClientIds = new Set<string>()
 
-    for (const job of completedJobs) {
-        const client = job.client
-        if (!client || processedClientIds.has(client.id)) continue
-        
-        processedClientIds.add(client.id)
-        
-        const lastJobDate = job.scheduledDate
-        const days = differenceInDays(now, lastJobDate)
-
+    for (const client of clients) {
+        let lastJobDate = client.lastBookingDate // Valeur de fallback
         let vehicleStr = "Inconnu"
-        if (job.vehicle) {
-            vehicleStr = `${job.vehicle.make} ${job.vehicle.model}`
-        } else if (client.vehicles && client.vehicles.length > 0) {
+
+        // Si on a un job complété, on prend ses infos en priorité
+        if (client.jobs && client.jobs.length > 0) {
+            const job = client.jobs[0]
+            lastJobDate = job.scheduledDate
+            if (job.vehicle) {
+                vehicleStr = `${job.vehicle.make} ${job.vehicle.model}`
+            }
+        }
+
+        // Si toujours pas de véhicule via le job, on prend le premier du client
+        if (vehicleStr === "Inconnu" && client.vehicles && client.vehicles.length > 0) {
             const v = client.vehicles[0]
             vehicleStr = `${v.make} ${v.model}`
         }
@@ -106,21 +108,37 @@ export async function getRetentionData(): Promise<RetentionBuckets> {
             email: client.user.email,
             lastBookingDate: lastJobDate,
             vehicleStr,
-            daysSinceLastJob: days
+            daysSinceLastJob: lastJobDate ? differenceInDays(now, lastJobDate) : null
         }
 
-        if (days >= 14 && days < 30) {
+        if (rc.daysSinceLastJob === null) {
+            buckets.never.push(rc)
+        } else if (rc.daysSinceLastJob < 14) {
+            buckets.recent.push(rc)
+        } else if (rc.daysSinceLastJob >= 14 && rc.daysSinceLastJob < 30) {
             buckets.weeks2.push(rc)
-        } else if (days >= 30 && days < 60) {
+        } else if (rc.daysSinceLastJob >= 30 && rc.daysSinceLastJob < 60) {
             buckets.month1.push(rc)
-        } else if (days >= 60 && days < 90) {
+        } else if (rc.daysSinceLastJob >= 60 && rc.daysSinceLastJob < 90) {
             buckets.months2.push(rc)
-        } else if (days >= 90 && days < 120) {
+        } else if (rc.daysSinceLastJob >= 90 && rc.daysSinceLastJob < 120) {
             buckets.months3.push(rc)
-        } else if (days >= 120) {
+        } else if (rc.daysSinceLastJob >= 120) {
             buckets.months3Plus.push(rc)
         }
     }
+
+    // Trier chaque bucket par date (le plus vieux en premier dans sa catégorie)
+    const sortByDateAsc = (a: RetentionClient, b: RetentionClient) => {
+        if (!a.lastBookingDate || !b.lastBookingDate) return 0
+        return a.lastBookingDate.getTime() - b.lastBookingDate.getTime()
+    }
+    buckets.recent.sort(sortByDateAsc)
+    buckets.weeks2.sort(sortByDateAsc)
+    buckets.month1.sort(sortByDateAsc)
+    buckets.months2.sort(sortByDateAsc)
+    buckets.months3.sort(sortByDateAsc)
+    buckets.months3Plus.sort(sortByDateAsc)
 
     return buckets
 }

@@ -10,11 +10,13 @@ import { fr } from "date-fns/locale"
 
 export function RetentionTable({ data }: { data: RetentionBuckets }) {
     const buckets = [
+        { id: "recent", label: "Récents", desc: "< 14 jours", clients: data.recent, color: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20" },
         { id: "weeks2", label: "2 Semaines", desc: "14 à 30 jours", clients: data.weeks2, color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
         { id: "month1", label: "1 Mois", desc: "30 à 60 jours", clients: data.month1, color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },
         { id: "months2", label: "2 Mois", desc: "60 à 90 jours", clients: data.months2, color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
         { id: "months3", label: "3 Mois", desc: "90 à 120 jours", clients: data.months3, color: "bg-orange-500/10 text-orange-500 border-orange-500/20" },
         { id: "months3Plus", label: "3+ Mois", desc: "+120 jours", clients: data.months3Plus, color: "bg-red-500/10 text-red-500 border-red-500/20" },
+        { id: "never", label: "Jamais", desc: "Aucun historique", clients: data.never, color: "bg-muted text-muted-foreground border-border/40" },
     ]
 
     return (
@@ -80,12 +82,20 @@ export function RetentionTable({ data }: { data: RetentionBuckets }) {
                                                         </div>
                                                     </td>
                                                     <td className="py-3 px-4 text-right">
-                                                        <div className="font-semibold text-foreground">
-                                                            Il y a {c.daysSinceLastJob} jours
-                                                        </div>
-                                                        <div className="text-[11px] text-muted-foreground">
-                                                            {format(new Date(c.lastBookingDate), "d MMMM yyyy", { locale: fr })}
-                                                        </div>
+                                                        {c.daysSinceLastJob !== null ? (
+                                                            <>
+                                                                <div className="font-semibold text-foreground">
+                                                                    Il y a {c.daysSinceLastJob} jours
+                                                                </div>
+                                                                <div className="text-[11px] text-muted-foreground">
+                                                                    {c.lastBookingDate && format(new Date(c.lastBookingDate), "d MMMM yyyy", { locale: fr })}
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="font-semibold text-muted-foreground italic">
+                                                                Aucun service
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="py-3 px-4">
                                                         <div className="flex items-center justify-center gap-2">
