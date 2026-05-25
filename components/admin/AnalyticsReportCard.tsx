@@ -55,25 +55,30 @@ export function AnalyticsReportCard({ s, index }: { s: any; index: number }) {
                         <div>
                             <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Rentabilité / Heure</p>
                             <div className="text-3xl font-black text-white flex items-baseline gap-1">
-                                {s.profitPerHour}€ <span className="text-xs text-slate-500">/h</span>
+                                {s.profitPerHour.toFixed(2)} <span className="text-xs text-slate-500">$/h</span>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800/50">
                             <div>
                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">CA Total</p>
-                                <p className="font-bold text-slate-200">{s.totalRevenue}€</p>
+                                <p className="font-bold text-slate-200">{s.totalRevenue.toFixed(2)} $</p>
                             </div>
                             <div>
                                 <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Marge Moy.</p>
-                                <p className="font-bold text-green-500">{s.avgProfitPerJob.toFixed(0)}€</p>
+                                <p className="font-bold text-green-500">{s.avgProfitPerJob.toFixed(2)} $</p>
                             </div>
                         </div>
+                        {s.avgDurationH > 0 && (
+                            <div className="pt-2 text-[10px] text-slate-500">
+                                Durée moy. : <span className="font-bold text-slate-400">{s.avgDurationH.toFixed(1)}h</span> · {s.jobCount} job{s.jobCount > 1 ? 's' : ''}
+                            </div>
+                        )}
 
                         <div className="w-full bg-slate-950 h-1 rounded-full mt-2 overflow-hidden">
-                            <div 
-                                className="bg-primary h-full transition-all duration-1000" 
-                                style={{ width: `${Math.min(100, (s.profitPerHour / 150) * 100)}%` }} 
+                            <div
+                                className="bg-primary h-full transition-all duration-1000"
+                                style={{ width: `${Math.min(100, (s.profitPerHour / 200) * 100)}%` }}
                             />
                         </div>
                     </CardContent>
