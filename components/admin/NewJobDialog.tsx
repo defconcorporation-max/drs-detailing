@@ -7,7 +7,7 @@ import { jobDurationMinutes } from "@/lib/job-metrics"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, Loader2, Clock, CalendarDays, Car, Users } from "lucide-react"
+import { Plus, Loader2, Clock, CalendarDays, Car, Users, Store } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -38,6 +38,7 @@ export function NewJobDialog({
     const [serviceExtras, setServiceExtras] = useState<Record<string, string[]>>({})
     const [selectedEmployees, setSelectedEmployees] = useState<string[]>([])
     const [isNewVehicle, setIsNewVehicle] = useState(false)
+    const [isInShop, setIsInShop] = useState(false)
     const [customServiceName, setCustomServiceName] = useState("")
     const [customServicePrice, setCustomServicePrice] = useState("")
     const [durationHours, setDurationHours] = useState("")
@@ -147,6 +148,7 @@ export function NewJobDialog({
             setServiceExtras({})
             setSelectedEmployees([])
             setIsNewVehicle(false)
+            setIsInShop(false)
             setCustomServiceName("")
             setCustomServicePrice("")
             setDurationHours("")
@@ -182,7 +184,7 @@ export function NewJobDialog({
                         </div>
                         <div className="space-y-1.5">
                             <Label className="flex items-center gap-1.5 text-xs">
-                                <Clock size={13} className="text-muted-foreground" /> DurÃ©e (heures)
+                                <Clock size={13} className="text-muted-foreground" /> Durée (heures)
                             </Label>
                             <Input
                                 type="number" step="0.5" min="0.5" max="12"
@@ -192,6 +194,22 @@ export function NewJobDialog({
                                 className="h-11 text-base"
                             />
                         </div>
+                        {/* Lieu de prestation */}
+                        <label className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/10 px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors">
+                            <Checkbox
+                                id="isInShop"
+                                name="isInShop"
+                                checked={isInShop}
+                                onCheckedChange={(c) => setIsInShop(c === true)}
+                            />
+                            <div className="flex items-center gap-2">
+                                <Store size={15} className={isInShop ? "text-primary" : "text-muted-foreground"} />
+                                <div>
+                                    <div className="text-sm font-semibold">{isInShop ? "En shop" : "Équipe mobile"}</div>
+                                    <div className="text-xs text-muted-foreground">{isInShop ? "Le client amène son véhicule" : "Déplacement chez le client"}</div>
+                                </div>
+                            </div>
+                        </label>
                     </div>
                 </div>
 

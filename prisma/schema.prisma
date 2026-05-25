@@ -190,6 +190,9 @@ model Job {
   inspections   Inspection[]
   timeLogs      TimeLog[]
 
+  // Lieu de prestation
+  isInShop      Boolean  @default(false) // true = en shop, false = équipe mobile
+
   // Photos avant/après
   beforePhotos  String? // JSON array of URLs
   afterPhotos   String? // JSON array of URLs

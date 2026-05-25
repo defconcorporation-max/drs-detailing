@@ -30,6 +30,7 @@ export async function createJob(data: FormData) {
     const serviceIds = data.getAll("serviceId") as string[]
     const extrasMap = parseServiceExtrasMap(data)
     const employeeIds = data.getAll("employeeId") as string[]
+    const isInShop = data.get("isInShop") === "on"
 
     // Custom service (free-text, not in catalog)
     const customServiceName = (data.get("customServiceName") as string)?.trim() || null
@@ -81,6 +82,7 @@ export async function createJob(data: FormData) {
                 customServiceName,
                 customServicePrice,
                 durationMin,
+                isInShop,
                 services: serviceIds.length ? {
                     create: serviceIds.map((id) => ({
                         serviceId: id,
@@ -156,6 +158,7 @@ export async function updateJob(id: string, data: FormData) {
 
     const serviceIds = data.getAll("serviceId") as string[]
     const extrasMap = parseServiceExtrasMap(data)
+    const isInShop = data.get("isInShop") === "on"
 
     // Custom service
     const customServiceName = (data.get("customServiceName") as string)?.trim() || null
@@ -182,6 +185,7 @@ export async function updateJob(id: string, data: FormData) {
                 customServiceName,
                 customServicePrice,
                 durationMin,
+                isInShop,
                 services: {
                     deleteMany: {},
                     create: serviceIds.map((sid) => ({

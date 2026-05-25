@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Edit, Trash2, Loader2, Calendar as CalendarIcon, Save, Clock, MapPin } from "lucide-react"
+import { Edit, Trash2, Loader2, Calendar as CalendarIcon, Save, Clock, MapPin, Store } from "lucide-react"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { JobServiceExtrasPicker } from "@/components/admin/JobServiceExtrasPicker"
 
@@ -37,6 +37,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
     const [customServiceName, setCustomServiceName] = useState(job.customServiceName || "")
     const [customServicePrice, setCustomServicePrice] = useState(job.customServicePrice ? String(job.customServicePrice) : "")
     const [durationHours, setDurationHours] = useState(job.durationMin ? String(job.durationMin / 60) : "")
+    const [isInShop, setIsInShop] = useState<boolean>(job.isInShop ?? false)
 
     useEffect(() => {
         if (!open) return
@@ -52,6 +53,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
         setCustomServiceName(job.customServiceName || "")
         setCustomServicePrice(job.customServicePrice ? String(job.customServicePrice) : "")
         setDurationHours(job.durationMin ? String(job.durationMin / 60) : "")
+        setIsInShop(job.isInShop ?? false)
     }, [open, job])
 
     useEffect(() => {
@@ -93,6 +95,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         setLoading(true)
                         selectedServiceIds.forEach((id) => formData.append("serviceId", id))
                         formData.set("serviceExtras", JSON.stringify(serviceExtras))
+                        if (isInShop) formData.set("isInShop", "on")
                         if (customServiceName.trim()) {
                             formData.set("customServiceName", customServiceName.trim())
                             if (customServicePrice) formData.set("customServicePrice", customServicePrice)
@@ -175,6 +178,23 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                                 onChange={(e) => setDurationHours(e.target.value)}
                                 className="rounded-xl"
                             />
+                        </div>
+                        {/* Lieu de prestation */}
+                        <div className="min-w-0 flex items-end">
+                            <label className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/10 px-3 py-2.5 cursor-pointer hover:bg-muted/30 transition-colors w-full">
+                                <Checkbox
+                                    id="edit-isInShop"
+                                    checked={isInShop}
+                                    onCheckedChange={(c) => setIsInShop(c === true)}
+                                />
+                                <div className="flex items-center gap-1.5">
+                                    <Store size={14} className={isInShop ? "text-primary" : "text-muted-foreground"} />
+                                    <div>
+                                        <div className="text-sm font-semibold">{isInShop ? "En shop" : "Mobile"}</div>
+                                        <div className="text-[10px] text-muted-foreground">{isInShop ? "Client en boutique" : "Déplacement"}</div>
+                                    </div>
+                                </div>
+                            </label>
                         </div>
                     </div>
 
