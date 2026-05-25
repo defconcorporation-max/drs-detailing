@@ -1,13 +1,17 @@
-import { getClientSegments, sendMarketingCampaign } from "@/lib/actions/marketing"
+import { getClientSegments, sendMarketingCampaign, getRetentionData } from "@/lib/actions/marketing"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Mail, Sparkles, Zap, Target, History, TrendingUp, Sun } from "lucide-react"
 import { WeatherCampaign } from "@/components/admin/WeatherCampaign"
+import { RetentionTable } from "@/components/admin/RetentionTable"
 import { cn } from "@/lib/utils"
 
 export default async function MarketingPage() {
-    const segments = await getClientSegments()
+    const [segments, retentionData] = await Promise.all([
+        getClientSegments(),
+        getRetentionData()
+    ])
 
     return (
         <div className="space-y-8 max-w-6xl mx-auto p-2">
@@ -88,6 +92,9 @@ export default async function MarketingPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Retention Tracking Table */}
+            <RetentionTable data={retentionData} />
         </div>
     )
 }
