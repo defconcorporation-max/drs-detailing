@@ -1,56 +1,36 @@
 import { getServiceProfitability } from "@/lib/actions/profitability"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { TrendingUp, DollarSign, Clock, BarChart3, PieChart } from "lucide-react"
-
-import { AnalyticsReportCard } from "@/components/admin/AnalyticsReportCard"
+import { getReportsData } from "@/lib/actions/reports"
+import { ReportsClient } from "@/components/admin/ReportsClient"
+import { BarChart3 } from "lucide-react"
 
 export default async function ReportsPage() {
-    const stats = await getServiceProfitability()
+    const [data, profitability] = await Promise.all([
+        getReportsData(),
+        getServiceProfitability(),
+    ])
 
     return (
-        <div className="p-8 space-y-8 max-w-7xl mx-auto">
-            <header className="flex justify-between items-end">
+        <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+            {/* En-tête */}
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div className="space-y-1">
-                    <h1 className="text-4xl font-black uppercase tracking-tighter">ANALYSE DE <span className="text-primary italic">RENTABILITÉ</span></h1>
-                    <p className="text-slate-500 font-medium">Performance financière par type de service</p>
+                    <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">
+                        ANALYSES &amp; <span className="text-primary italic">RAPPORTS</span>
+                    </h1>
+                    <p className="text-slate-500 font-medium text-sm">
+                        Tableau de bord financier complet — données en temps réel
+                    </p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl px-6 py-3 flex items-center gap-4">
-                    <div className="text-right">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl px-5 py-3 flex items-center gap-3 w-fit">
+                    <BarChart3 className="text-primary" size={20} />
+                    <div>
                         <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest leading-none">Période</p>
-                        <p className="font-bold text-white">30 DERNIERS JOURS</p>
+                        <p className="font-bold text-white text-sm">12 DERNIÈRES SEMAINES</p>
                     </div>
-                    <BarChart3 className="text-primary" size={24} />
                 </div>
             </header>
 
-            <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
-               {stats.map((s, i) => (
-                    <AnalyticsReportCard key={s.name} s={s} index={i} />
-               ))}
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card className="bg-slate-950 border-slate-900">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 uppercase tracking-widest">
-                            <Clock size={16} className="text-primary" /> Optimisation du Temps
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-slate-400">
-                        Vos services les plus rentables par heure sont les opportunités de croissance. Envisagez d'augmenter les prix sur les services à faible rentabilité ou de former l'équipe pour réduire leur durée.
-                    </CardContent>
-                </Card>
-                <Card className="bg-slate-950 border-slate-900">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 uppercase tracking-widest">
-                            <TrendingUp size={16} className="text-primary" /> Analyse des Coûts Produits
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-slate-400">
-                        Le suivi de consommation a permis d'isoler une marge brute réelle. Le coût produit moyen représente 8% du CA sur vos 3 services principaux.
-                    </CardContent>
-                </Card>
-            </div>
+            <ReportsClient data={data} profitability={profitability} />
         </div>
     )
 }
