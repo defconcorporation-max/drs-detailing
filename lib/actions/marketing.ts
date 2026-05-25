@@ -54,16 +54,18 @@ export type RetentionBuckets = {
 }
 
 export async function getRetentionData(): Promise<RetentionBuckets> {
-    const clients = await prisma.clientProfile.findMany({
-        where: {
-            lastBookingDate: { not: null }
-        },
+    // On va chercher tous les jobs terminés, ordonnés par date (le plus récent en premier)
+    const completedJobs = await prisma.job.findMany({
+        where: { status: "COMPLETED" },
+        orderBy: { scheduledDate: 'desc' },
         include: {
-            user: true,
-            vehicles: true
-        },
-        orderBy: {
-            lastBookingDate: 'desc'
+            client: {
+                include: {
+                    user: true,
+                    vehicles: true
+                }
+            },
+            vehicle: true // Au cas où le véhicule est lié au job directement
         }
     })
 
@@ -76,13 +78,23 @@ export async function getRetentionData(): Promise<RetentionBuckets> {
     }
 
     const now = new Date()
+    
+    // On garde une trace des clients déjà traités pour n'avoir que leur job le plus récent
+    const processedClientIds = new Set<string>()
 
-    for (const client of clients) {
-        if (!client.lastBookingDate) continue
-        const days = differenceInDays(now, client.lastBookingDate)
+    for (const job of completedJobs) {
+        const client = job.client
+        if (!client || processedClientIds.has(client.id)) continue
+        
+        processedClientIds.add(client.id)
+        
+        const lastJobDate = job.scheduledDate
+        const days = differenceInDays(now, lastJobDate)
 
         let vehicleStr = "Inconnu"
-        if (client.vehicles && client.vehicles.length > 0) {
+        if (job.vehicle) {
+            vehicleStr = `${job.vehicle.make} ${job.vehicle.model}`
+        } else if (client.vehicles && client.vehicles.length > 0) {
             const v = client.vehicles[0]
             vehicleStr = `${v.make} ${v.model}`
         }
@@ -92,7 +104,7 @@ export async function getRetentionData(): Promise<RetentionBuckets> {
             name: client.user.name || "Client",
             phone: client.user.phone,
             email: client.user.email,
-            lastBookingDate: client.lastBookingDate,
+            lastBookingDate: lastJobDate,
             vehicleStr,
             daysSinceLastJob: days
         }
