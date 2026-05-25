@@ -10,6 +10,7 @@ import { fr } from "date-fns/locale"
 
 export function RetentionTable({ data }: { data: RetentionBuckets }) {
     const buckets = [
+        { id: "upcoming", label: "À venir", desc: "RDV planifié", clients: data.upcoming, color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
         { id: "recent", label: "Récents", desc: "< 14 jours", clients: data.recent, color: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20" },
         { id: "weeks2", label: "2 Semaines", desc: "14 à 30 jours", clients: data.weeks2, color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
         { id: "month1", label: "1 Mois", desc: "30 à 60 jours", clients: data.month1, color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" },

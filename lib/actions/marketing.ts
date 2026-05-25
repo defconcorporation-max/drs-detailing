@@ -46,6 +46,7 @@ export type RetentionClient = {
 }
 
 export type RetentionBuckets = {
+    upcoming: RetentionClient[]  // À venir (planifié)
     recent: RetentionClient[]    // < 14 jours
     weeks2: RetentionClient[]    // 14-29 jours
     month1: RetentionClient[]    // 30-59 jours
@@ -62,15 +63,14 @@ export async function getRetentionData(): Promise<RetentionBuckets> {
             user: true,
             vehicles: true,
             jobs: {
-                where: { status: "COMPLETED" },
                 orderBy: { scheduledDate: 'desc' },
-                take: 1, // Prendre seulement le plus récent
                 include: { vehicle: true }
             }
         }
     })
 
     const buckets: RetentionBuckets = {
+        upcoming: [],
         recent: [],
         weeks2: [],
         month1: [],
@@ -83,24 +83,33 @@ export async function getRetentionData(): Promise<RetentionBuckets> {
     const now = new Date()
 
     for (const client of clients) {
-        let lastJobDate = client.lastBookingDate // Valeur de fallback
-        let vehicleStr = "Inconnu"
-
-        // Si on a un job complété, on prend ses infos en priorité
-        if (client.jobs && client.jobs.length > 0) {
-            const job = client.jobs[0]
-            lastJobDate = job.scheduledDate
-            if (job.vehicle) {
-                vehicleStr = `${job.vehicle.make} ${job.vehicle.model}`
+        let lastCompletedJob = null
+        let hasUpcomingJob = false
+        
+        // Parcourir les jobs du client pour trouver les infos pertinentes
+        for (const job of client.jobs) {
+            if (job.status === "PENDING" || job.status === "CONFIRMED") {
+                // On considère que s'il a un job en attente ou confirmé, il est "À venir"
+                hasUpcomingJob = true
+            }
+            if (job.status === "COMPLETED" && !lastCompletedJob) {
+                lastCompletedJob = job
             }
         }
 
-        // Si toujours pas de véhicule via le job, on prend le premier du client
-        if (vehicleStr === "Inconnu" && client.vehicles && client.vehicles.length > 0) {
+        let vehicleStr = "Inconnu"
+
+        // On prend le véhicule du dernier job complété ou du job à venir
+        const targetJob = lastCompletedJob || client.jobs[0]
+        if (targetJob && targetJob.vehicle) {
+            vehicleStr = `${targetJob.vehicle.make} ${targetJob.vehicle.model}`
+        } else if (client.vehicles && client.vehicles.length > 0) {
             const v = client.vehicles[0]
             vehicleStr = `${v.make} ${v.model}`
         }
 
+        const lastJobDate = lastCompletedJob ? lastCompletedJob.scheduledDate : client.lastBookingDate
+        
         const rc: RetentionClient = {
             id: client.id,
             name: client.user.name || "Client",
@@ -111,7 +120,9 @@ export async function getRetentionData(): Promise<RetentionBuckets> {
             daysSinceLastJob: lastJobDate ? differenceInDays(now, lastJobDate) : null
         }
 
-        if (rc.daysSinceLastJob === null) {
+        if (hasUpcomingJob) {
+            buckets.upcoming.push(rc)
+        } else if (rc.daysSinceLastJob === null) {
             buckets.never.push(rc)
         } else if (rc.daysSinceLastJob < 14) {
             buckets.recent.push(rc)
@@ -133,6 +144,7 @@ export async function getRetentionData(): Promise<RetentionBuckets> {
         if (!a.lastBookingDate || !b.lastBookingDate) return 0
         return a.lastBookingDate.getTime() - b.lastBookingDate.getTime()
     }
+    buckets.upcoming.sort(sortByDateAsc) // Optionally sort upcoming by next date, but we only have lastBookingDate here
     buckets.recent.sort(sortByDateAsc)
     buckets.weeks2.sort(sortByDateAsc)
     buckets.month1.sort(sortByDateAsc)
