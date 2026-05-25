@@ -16,6 +16,20 @@ export function NewEventDialog({ prefillDate, prefillTime }: { prefillDate?: str
     const [date, setDate] = useState(prefillDate || new Date().toISOString().split("T")[0])
     const [time, setTime] = useState(prefillTime || "09:00")
     const [durationHours, setDurationHours] = useState("1")
+    const [type, setType] = useState("TASK")
+    const [title, setTitle] = useState("")
+    const [color, setColor] = useState("#3b82f6")
+
+    // Quand on change le type, si c'est BLOCK on pré-remplit "Fermé" et on met en rouge
+    function handleTypeChange(val: string) {
+        setType(val)
+        if (val === "BLOCK") {
+            if (!title) setTitle("Fermeture / Non Dispo")
+            setColor("#ef4444") // Red
+        } else if (color === "#ef4444") {
+            setColor("#3b82f6") // Reset to default blue
+        }
+    }
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -49,7 +63,7 @@ export function NewEventDialog({ prefillDate, prefillTime }: { prefillDate?: str
                 <form action={handleSubmit} className="space-y-4 py-2">
                     <div className="space-y-2">
                         <Label>Titre</Label>
-                        <Input name="title" required placeholder="Ex: Réunion d'équipe, Maintenance..." className="rounded-xl" />
+                        <Input name="title" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Ex: Réunion d'équipe, Maintenance..." className="rounded-xl" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -66,7 +80,7 @@ export function NewEventDialog({ prefillDate, prefillTime }: { prefillDate?: str
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Type</Label>
-                            <Select name="type" defaultValue="TASK">
+                            <Select name="type" value={type} onValueChange={handleTypeChange}>
                                 <SelectTrigger className="rounded-xl">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -75,6 +89,7 @@ export function NewEventDialog({ prefillDate, prefillTime }: { prefillDate?: str
                                     <SelectItem value="MEETING">Réunion</SelectItem>
                                     <SelectItem value="REMINDER">Rappel</SelectItem>
                                     <SelectItem value="PERSONAL">Personnel</SelectItem>
+                                    <SelectItem value="BLOCK">Fermeture / Non Dispo</SelectItem>
                                     <SelectItem value="OTHER">Autre</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -101,7 +116,7 @@ export function NewEventDialog({ prefillDate, prefillTime }: { prefillDate?: str
 
                     <div className="space-y-2">
                         <Label>Couleur (optionnel)</Label>
-                        <Input name="color" type="color" defaultValue="#3b82f6" className="h-10 w-full rounded-xl p-1" />
+                        <Input name="color" type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-10 w-full rounded-xl p-1" />
                     </div>
 
                     <DialogFooter className="pt-2">

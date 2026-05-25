@@ -580,19 +580,26 @@ function JobCard({
 function EventCard({ event }: { event: any }) {
     const durationMin = event.durationMin || 60
     const color = event.color || "#3b82f6"
+    const isBlock = event.type === "BLOCK"
     
     return (
         <EditEventDialog event={event}>
             <div
-                className="absolute z-10 flex w-full cursor-pointer flex-col overflow-hidden rounded-lg border-l-4 py-1.5 pl-3 pr-1 text-xs shadow-sm transition-all hover:brightness-110 active:scale-[0.98] h-full"
+                className={`absolute z-10 flex w-full cursor-pointer flex-col overflow-hidden rounded-lg border-l-4 py-1.5 pl-3 pr-1 text-xs shadow-sm transition-all hover:brightness-110 active:scale-[0.98] h-full ${isBlock ? "opacity-90" : ""}`}
                 style={{
-                    backgroundColor: `${color}15`,
+                    ...(isBlock 
+                        ? { backgroundImage: `repeating-linear-gradient(45deg, ${color}15, ${color}15 10px, ${color}30 10px, ${color}30 20px)` }
+                        : { backgroundColor: `${color}15` }
+                    ),
                     borderLeftColor: color,
                     minHeight: "28px",
                 }}
             >
-                <div className="truncate font-bold leading-tight" style={{ color }}>{event.title}</div>
-                <div className="flex items-center gap-1 text-[9px] opacity-70">
+                <div className="truncate font-bold leading-tight" style={{ color }}>
+                    {isBlock && <span className="mr-1">🔒</span>}
+                    {event.title}
+                </div>
+                <div className="flex items-center gap-1 text-[9px] opacity-70" style={{ color }}>
                     <Clock size={8} /> {(durationMin / 60).toFixed(1)}h
                 </div>
                 {event.isCompleted && (
