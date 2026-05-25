@@ -249,7 +249,7 @@ export function NewJobDialog({
                     {!isNewVehicle ? (
                         <Select value={vehicleId} onValueChange={setVehicleId} disabled={!selectedClient}>
                             <SelectTrigger className="h-11 rounded-xl">
-                                <SelectValue placeholder={!selectedClient ? "Choisir un client d'abord" : vehicles.length > 0 ? "SÃ©lectionner un vÃ©hicule" : "â€”"} />
+                                <SelectValue placeholder={!selectedClient ? "Choisir un client d'abord" : vehicles.length > 0 ? "Sélectionner un véhicule" : "—"} />
                             </SelectTrigger>
                             <SelectContent>
                                 {vehicles.map((v: any) => (
@@ -340,7 +340,7 @@ export function NewJobDialog({
                     <MultiSelect
                         selected={selectedEmployees}
                         onChange={setSelectedEmployees}
-                        placeholder="SÃ©lectionner employÃ©sâ€¦"
+                        placeholder="Sélectionner employés…"
                         options={sortedEmployees.map((e: any) => {
                             const statusData = availability[e.id]
                             const status = statusData?.status || "AVAILABLE"
