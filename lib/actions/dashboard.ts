@@ -14,6 +14,11 @@ export async function getDashboardStats() {
     const endOfWeek = new Date(startOfWeek)
     endOfWeek.setDate(startOfWeek.getDate() + 7)
 
+    // Semaine prochaine
+    const startOfNextWeek = new Date(endOfWeek)
+    const endOfNextWeek = new Date(startOfNextWeek)
+    endOfNextWeek.setDate(startOfNextWeek.getDate() + 7)
+
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const startOfYear = new Date(now.getFullYear(), 0, 1)
 
@@ -27,6 +32,7 @@ export async function getDashboardStats() {
     const [
         clientsCount,
         jobsWeekRaw,
+        jobsNextWeekRaw,
         jobsMonthRaw,
         jobsYearRaw,
         recentCompletedJobs,
@@ -36,6 +42,18 @@ export async function getDashboardStats() {
         
         prisma.job.findMany({ 
             where: { scheduledDate: { gte: startOfWeek, lt: endOfWeek }, status: { not: 'CANCELLED' } },
+            orderBy: { scheduledDate: 'asc' },
+            include: { 
+                employees: { include: { user: true } }, 
+                employee: { include: { user: true } }, 
+                client: { include: { user: true } }, 
+                vehicle: true, 
+                services: { include: { service: true } } 
+            }
+        }),
+        
+        prisma.job.findMany({ 
+            where: { scheduledDate: { gte: startOfNextWeek, lt: endOfNextWeek }, status: { not: 'CANCELLED' } },
             orderBy: { scheduledDate: 'asc' },
             include: { 
                 employees: { include: { user: true } }, 
@@ -101,6 +119,7 @@ export async function getDashboardStats() {
     }
 
     const weekMetrics = calculateMetrics(jobsWeekRaw)
+    const nextWeekMetrics = calculateMetrics(jobsNextWeekRaw)
     const monthMetrics = calculateMetrics(jobsMonthRaw)
     const yearMetrics = calculateMetrics(jobsYearRaw)
 
@@ -116,6 +135,7 @@ export async function getDashboardStats() {
         clientsCount,
         avgVehicleCost,
         week: weekMetrics,
+        nextWeek: nextWeekMetrics,
         month: monthMetrics,
         year: yearMetrics,
         jobsToday,
