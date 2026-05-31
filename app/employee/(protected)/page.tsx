@@ -8,6 +8,7 @@ import { Calendar, Clock, MapPin, Car, TrendingUp } from "lucide-react"
 import { startOfYear, endOfYear, startOfWeek, endOfWeek, isWithinInterval } from "date-fns"
 import { filterJobsForPortal, isAdminEmployeePortalView } from "@/lib/employee-portal"
 import { serialize } from "@/lib/utils"
+import { LocalJobDate, LocalJobTime } from "@/components/employee/LocalJobTime"
 
 export default async function EmployeeDashboard() {
     const cookieStore = await cookies()
@@ -114,11 +115,11 @@ export default async function EmployeeDashboard() {
                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                         <div className="flex items-center gap-2">
                                             <Calendar size={14} className="text-muted-foreground" />
-                                            <span>{new Date(job.scheduledDate).toLocaleDateString()}</span>
+                                            <span><LocalJobDate iso={job.scheduledDate} /></span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Clock size={14} className="text-muted-foreground" />
-                                            <span>{new Date(job.scheduledDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span><LocalJobTime iso={job.scheduledDate} /></span>
                                         </div>
                                     </div>
 
