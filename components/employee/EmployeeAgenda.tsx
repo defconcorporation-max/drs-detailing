@@ -63,7 +63,7 @@ function timeFromDropY(clientY: number, rect: DOMRect) {
     return { hour, minute }
 }
 
-export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabilities: any[] }) {
+export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs: any[], availabilities: any[], readOnly?: boolean }) {
     const router = useRouter()
     const [currentDate, setCurrentDate] = useState(new Date())
     const [dropTargetDayIdx, setDropTargetDayIdx] = useState<number | null>(null)
@@ -176,19 +176,19 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                 <div
                                     className={cn(
                                         "relative min-h-[560px] flex-1 bg-background/50 transition-colors",
-                                        dropTargetDayIdx === i && "bg-primary/10 ring-1 ring-inset ring-primary/30"
+                                        !readOnly && dropTargetDayIdx === i && "bg-primary/10 ring-1 ring-inset ring-primary/30"
                                     )}
-                                    onDragOver={(e) => {
+                                    onDragOver={readOnly ? undefined : (e) => {
                                         e.preventDefault()
                                         e.dataTransfer.dropEffect = "move"
                                     }}
-                                    onDragEnter={() => setDropTargetDayIdx(i)}
-                                    onDragLeave={(e) => {
+                                    onDragEnter={readOnly ? undefined : () => setDropTargetDayIdx(i)}
+                                    onDragLeave={readOnly ? undefined : (e) => {
                                         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                                             setDropTargetDayIdx(null)
                                         }
                                     }}
-                                    onDrop={async (e) => {
+                                    onDrop={readOnly ? undefined : async (e) => {
                                         e.preventDefault()
                                         setDropTargetDayIdx(null)
                                         const raw = e.dataTransfer.getData(DRAG_MIME)
@@ -266,21 +266,23 @@ export function EmployeeAgenda({ jobs, availabilities }: { jobs: any[], availabi
                                             <Dialog key={job.id}>
                                                 <DialogTrigger asChild>
                                                     <div
-                                                        draggable
-                                                        onDragStart={(ev) => {
+                                                        draggable={!readOnly}
+                                                        onDragStart={readOnly ? undefined : (ev) => {
                                                             ev.dataTransfer.setData(DRAG_MIME, dragPayload)
                                                             ev.dataTransfer.effectAllowed = "move"
                                                         }}
-                                                        className={`absolute left-[2.5%] z-10 flex w-[95%] cursor-grab flex-col overflow-hidden rounded-lg border p-1.5 pl-5 text-xs shadow-md transition-transform hover:scale-[1.02] active:cursor-grabbing ${box} ${text} ${opacity ?? ""}`}
+                                                        className={`absolute left-[2.5%] z-10 flex w-[95%] ${readOnly ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} flex-col overflow-hidden rounded-lg border p-1.5 ${readOnly ? 'pl-2' : 'pl-5'} text-xs shadow-md transition-transform hover:scale-[1.02] ${box} ${text} ${opacity ?? ""}`}
                                                         style={{
                                                             top: `${topPct}%`,
                                                             height: `${heightPct}%`,
                                                         }}
-                                                        title={`Glisser pour déplacer — ${[job.client?.user?.name, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
+                                                        title={readOnly ? `${[job.client?.user?.name, vehicleStr, servicesStr].filter(Boolean).join(" · ")}` : `Glisser pour déplacer — ${[job.client?.user?.name, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
                                                     >
-                                                        <div className="pointer-events-none absolute left-0.5 top-1 opacity-40">
-                                                            <GripVertical className="size-3.5" aria-hidden />
-                                                        </div>
+                                                        {!readOnly && (
+                                                            <div className="pointer-events-none absolute left-0.5 top-1 opacity-40">
+                                                                <GripVertical className="size-3.5" aria-hidden />
+                                                            </div>
+                                                        )}
                                                         {compactCard ? (
                                                             <>
                                                                 <div className="truncate font-bold leading-tight">{job.client?.user?.name ?? "—"}</div>
