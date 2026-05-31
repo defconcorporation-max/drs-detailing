@@ -4,6 +4,7 @@ import { EmployeeAgenda } from "@/components/employee/EmployeeAgenda"
 import prisma from "@/lib/db"
 import { cookies } from "next/headers"
 import { filterJobsForPortal, isAdminEmployeePortalView } from "@/lib/employee-portal"
+import { serialize } from "@/lib/utils"
 
 export default async function EmployeeCalendarPage() {
     const cookieStore = await cookies()
@@ -22,7 +23,7 @@ export default async function EmployeeCalendarPage() {
     if (!adminView && !user.employeeProfile) return <div>Profil employé introuvable</div>
 
     const allJobs = await getJobs()
-    const myJobs = filterJobsForPortal(allJobs, currentUserId, { isAdminView: adminView })
+    const myJobs = serialize(filterJobsForPortal(allJobs, currentUserId, { isAdminView: adminView }))
 
     const today = new Date()
     const start = new Date(today)

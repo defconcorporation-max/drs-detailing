@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, MapPin, Car, TrendingUp } from "lucide-react"
 import { startOfYear, endOfYear, startOfWeek, endOfWeek, isWithinInterval } from "date-fns"
 import { filterJobsForPortal, isAdminEmployeePortalView } from "@/lib/employee-portal"
+import { serialize } from "@/lib/utils"
 
 export default async function EmployeeDashboard() {
     const cookieStore = await cookies()
@@ -25,7 +26,7 @@ export default async function EmployeeDashboard() {
     if (!adminView && !user.employeeProfile) return <div>Profil employé introuvable</div>
 
     const allJobs = await getJobs()
-    const myJobs = filterJobsForPortal(allJobs, currentUserId, { isAdminView: adminView })
+    const myJobs = serialize(filterJobsForPortal(allJobs, currentUserId, { isAdminView: adminView }))
 
     // KPI Calculations
     const now = new Date()
