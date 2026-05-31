@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { addDays, startOfWeek, format, isSameDay } from "date-fns"
 import { fr } from "date-fns/locale"
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, Clock, GripVertical } from "lucide-react"
+import { ChevronLeft, ChevronRight, MapPin, Clock, GripVertical, Maximize2, Minimize2 } from "lucide-react"
 import { rescheduleJob } from "@/lib/actions/jobs"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -26,26 +26,9 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 
-// Helper: Time (HH:MM) to % from top (starting 07:00 ending 20:00)
-// Total hours: 13 (7 to 20) -> 0% to 100%
 const START_HOUR = 7
-const END_HOUR = 21 // 21:00 to give space
+const END_HOUR = 21
 const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60
-
-const getTopOffset = (timeStr: string) => {
-    const [h, m] = timeStr.split(':').map(Number)
-    const minutesFromStart = (h - START_HOUR) * 60 + m
-    return (minutesFromStart / TOTAL_MINUTES) * 100
-}
-
-const getHeight = (startStr: string, endStr: string) => {
-    const [h1, m1] = startStr.split(':').map(Number)
-    const [h2, m2] = endStr.split(':').map(Number)
-    const startMin = (h1 - START_HOUR) * 60 + m1
-    const endMin = (h2 - START_HOUR) * 60 + m2
-    const duration = endMin - startMin
-    return (duration / TOTAL_MINUTES) * 100
-}
 
 const DRAG_MIME = "application/x-drs-job"
 
@@ -63,77 +46,192 @@ function timeFromDropY(clientY: number, rect: DOMRect) {
     return { hour, minute }
 }
 
+/**
+ * Calcule les positions côte à côte pour des jobs qui se chevauchent.
+ * Retourne pour chaque job : { colIndex, totalCols }
+ */
+function computeJobLayout(jobs: any[]): Map<string, { colIndex: number; totalCols: number }> {
+    // Enrichir chaque job avec startMin / endMin
+    const enriched = jobs.map((job) => {
+        const d = new Date(job.scheduledDate)
+        const startMin = d.getHours() * 60 + d.getMinutes()
+        const duration = job.durationMin || jobDurationMinutes(job.services || []) || 60
+        return { id: job.id, startMin, endMin: startMin + duration }
+    })
+
+    // Trier par heure de début
+    enriched.sort((a, b) => a.startMin - b.startMin)
+
+    const layout = new Map<string, { colIndex: number; totalCols: number }>()
+
+    // Groupes de chevauchement
+    const groups: (typeof enriched)[] = []
+
+    for (const job of enriched) {
+        // Cherche un groupe existant qui chevauche ce job
+        let placed = false
+        for (const group of groups) {
+            // Un groupe chevauche si au moins un job dans le groupe se superpose à ce job
+            const overlaps = group.some((g) => g.startMin < job.endMin && g.endMin > job.startMin)
+            if (overlaps) {
+                group.push(job)
+                placed = true
+                break
+            }
+        }
+        if (!placed) groups.push([job])
+    }
+
+    // Pour chaque groupe, assigner colIndex et totalCols
+    for (const group of groups) {
+        // Trier par heure début pour assigner les colonnes proprement
+        const sorted = [...group].sort((a, b) => a.startMin - b.startMin)
+        const cols: number[][] = [] // cols[i] = liste des endMin des jobs dans la colonne i
+
+        for (const job of sorted) {
+            // Trouver la première colonne libre
+            let placed = false
+            for (let c = 0; c < cols.length; c++) {
+                const lastEnd = Math.max(...cols[c])
+                if (job.startMin >= lastEnd) {
+                    cols[c].push(job.endMin)
+                    layout.set(job.id, { colIndex: c, totalCols: 0 }) // totalCols fixé après
+                    placed = true
+                    break
+                }
+            }
+            if (!placed) {
+                cols.push([job.endMin])
+                layout.set(job.id, { colIndex: cols.length - 1, totalCols: 0 })
+            }
+        }
+
+        // Mettre à jour totalCols pour tous les jobs du groupe
+        for (const job of group) {
+            const entry = layout.get(job.id)!
+            layout.set(job.id, { ...entry, totalCols: cols.length })
+        }
+    }
+
+    return layout
+}
+
 export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs: any[], availabilities: any[], readOnly?: boolean }) {
     const router = useRouter()
     const [currentDate, setCurrentDate] = useState(new Date())
     const [dropTargetDayIdx, setDropTargetDayIdx] = useState<number | null>(null)
     const [viewMode, setViewMode] = useState<"day" | "week">("week")
+    const [isFullscreen, setIsFullscreen] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        if (window.innerWidth < 768) {
-            setViewMode("day")
-        }
+        if (window.innerWidth < 768) setViewMode("day")
         const end = () => setDropTargetDayIdx(null)
         window.addEventListener("dragend", end)
         return () => window.removeEventListener("dragend", end)
     }, [])
 
-    // Week Range
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }) // Monday
+    // Gérer fullscreen via l'API navigateur + fallback CSS
+    const toggleFullscreen = useCallback(async () => {
+        if (!containerRef.current) return
+        try {
+            if (!document.fullscreenElement) {
+                await containerRef.current.requestFullscreen()
+                setIsFullscreen(true)
+            } else {
+                await document.exitFullscreen()
+                setIsFullscreen(false)
+            }
+        } catch {
+            // Fallback : toggle classe CSS fixed overlay
+            setIsFullscreen((v) => !v)
+        }
+    }, [])
+
+    useEffect(() => {
+        const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+        document.addEventListener("fullscreenchange", onFsChange)
+        return () => document.removeEventListener("fullscreenchange", onFsChange)
+    }, [])
+
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
     const weekDaysFull = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
-    
-    // Si vue jour, on affiche SEULEMENT le currentDate
     const visibleDays = viewMode === "day" ? [currentDate] : weekDaysFull
 
-    // Navigation
     const nextPeriod = () => setCurrentDate(addDays(currentDate, viewMode === "week" ? 7 : 1))
     const prevPeriod = () => setCurrentDate(addDays(currentDate, viewMode === "week" ? -7 : -1))
     const today = () => setCurrentDate(new Date())
 
     return (
-        <div className="flex flex-col h-[calc(100vh-200px)] sm:h-[800px] border rounded-xl bg-background shadow-sm overflow-hidden">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b gap-4">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-bold capitalize">
-                        {format(currentDate, viewMode === "day" ? "EEEE d MMMM" : 'MMMM yyyy', { locale: fr })}
+        <div
+            ref={containerRef}
+            className={cn(
+                "flex flex-col border rounded-xl bg-background shadow-sm overflow-hidden",
+                isFullscreen && !document.fullscreenElement
+                    ? "fixed inset-0 z-50 rounded-none border-none"
+                    : "h-[calc(100vh-200px)] sm:h-[800px]",
+                // En mode fullscreen natif, le container prend tout l'écran automatiquement
+                "[&:fullscreen]:h-screen [&:fullscreen]:rounded-none [&:fullscreen]:border-none"
+            )}
+        >
+            {/* ── Header ── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3 py-2 border-b gap-2 shrink-0">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-base sm:text-lg font-bold capitalize">
+                        {format(currentDate, viewMode === "day" ? "EEEE d MMMM" : "MMMM yyyy", { locale: fr })}
                     </h2>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-md border bg-muted/50 p-1">
-                        <Button 
-                            variant={viewMode === "day" ? "default" : "ghost"} 
-                            size="sm" 
+                <div className="flex items-center gap-2 flex-wrap">
+                    {/* Jour / Semaine */}
+                    <div className="flex items-center rounded-md border bg-muted/50 p-0.5">
+                        <Button
+                            variant={viewMode === "day" ? "default" : "ghost"}
+                            size="sm"
                             onClick={() => setViewMode("day")}
                             className="h-7 text-xs px-2"
                         >
                             Jour
                         </Button>
-                        <Button 
-                            variant={viewMode === "week" ? "default" : "ghost"} 
-                            size="sm" 
+                        <Button
+                            variant={viewMode === "week" ? "default" : "ghost"}
+                            size="sm"
                             onClick={() => setViewMode("week")}
                             className="h-7 text-xs px-2"
                         >
                             Semaine
                         </Button>
                     </div>
+                    {/* Navigation */}
                     <div className="flex items-center rounded-md border bg-muted/50">
                         <Button variant="ghost" size="icon" onClick={prevPeriod} className="h-8 w-8"><ChevronLeft size={16} /></Button>
-                        <Button variant="ghost" size="sm" onClick={today} className="h-8">Aujourd'hui</Button>
+                        <Button variant="ghost" size="sm" onClick={today} className="h-8 text-xs">Aujourd'hui</Button>
                         <Button variant="ghost" size="icon" onClick={nextPeriod} className="h-8 w-8"><ChevronRight size={16} /></Button>
                     </div>
+                    {/* Plein écran */}
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={toggleFullscreen}
+                        className="h-8 w-8"
+                        title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+                    >
+                        {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                    </Button>
                 </div>
             </div>
 
-            {/* Calendar Grid */}
-            <div className="flex flex-1 overflow-auto">
-                {/* Time Scale Column */}
-                <div className="w-16 border-r bg-muted/10 flex-shrink-0">
-                    <div className="h-10 border-b"></div> {/* Header spacer */}
-                    <div className="relative h-full">
+            {/* ── Calendar Grid ── */}
+            <div className="flex flex-1 overflow-auto min-h-0">
+                {/* Time Scale */}
+                <div className="w-12 sm:w-14 border-r bg-muted/10 flex-shrink-0">
+                    <div className="h-10 border-b" />
+                    <div className="relative" style={{ height: `${(END_HOUR - START_HOUR) * 48}px` }}>
                         {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => (
-                            <div key={i} className="absolute w-full text-right pr-2 text-xs text-muted-foreground border-t border-transparent" style={{ top: `${(i / (END_HOUR - START_HOUR)) * 100}%` }}>
+                            <div
+                                key={i}
+                                className="absolute w-full text-right pr-1 text-[10px] sm:text-xs text-muted-foreground"
+                                style={{ top: `${i * 48}px` }}
+                            >
                                 {START_HOUR + i}:00
                             </div>
                         ))}
@@ -141,43 +239,40 @@ export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs
                 </div>
 
                 {/* Days Columns */}
-                {/* On small screens, allow horizontal scroll instead of forcing the whole layout to be very wide, unless in day mode */}
-                <div className={`flex flex-1 ${viewMode === "day" ? "min-w-full" : "min-w-[650px] sm:min-w-[800px]"}`}>
+                <div className={`flex flex-1 ${viewMode === "day" ? "min-w-full" : "min-w-[520px] sm:min-w-[700px]"}`}>
                     {visibleDays.map((day, i) => {
                         const isToday = isSameDay(day, new Date())
 
-                        // FIX: Use isSameDay for robust local comparison
-                        // Do not use toISOString() as it shifts timezone
+                        const dayAvails = availabilities.filter(a => isSameDay(new Date(a.date), day))
+                        const dayJobs = jobs.filter(j => isSameDay(new Date(j.scheduledDate), day))
 
-                        // 1. Availabilities
-                        const dayAvails = availabilities.filter(a => {
-                            // a.date is ISO string or Date object
-                            return isSameDay(new Date(a.date), day)
-                        })
+                        // Calcul positions côte à côte
+                        const layout = computeJobLayout(dayJobs)
 
-                        // 2. Jobs
-                        const dayJobs = jobs.filter(j => {
-                            return isSameDay(new Date(j.scheduledDate), day)
-                        })
-
-                        // Debug log to console if needed
-                        // console.log(`Day ${day.toDateString()}: ${dayJobs.length} jobs`)
+                        const GRID_HEIGHT = (END_HOUR - START_HOUR) * 48 // px fixes
 
                         return (
-                            <div key={i} className={cn("flex-1 border-r min-w-[90px] sm:min-w-[120px] flex flex-col", isToday && "bg-primary/5")}>
+                            <div
+                                key={i}
+                                className={cn(
+                                    "flex-1 border-r flex flex-col min-w-[70px] sm:min-w-[100px]",
+                                    isToday && "bg-primary/5"
+                                )}
+                            >
                                 {/* Day Header */}
-                                <div className="h-10 border-b flex items-center justify-center font-medium text-sm capitalize bg-background sticky top-0 z-10">
+                                <div className="h-10 border-b flex items-center justify-center font-medium text-xs sm:text-sm capitalize bg-background sticky top-0 z-10">
                                     <span className={cn(isToday && "text-primary font-bold")}>
-                                        {format(day, 'EEE d', { locale: fr })}
+                                        {format(day, "EEE d", { locale: fr })}
                                     </span>
                                 </div>
 
-                                {/* Timeline Area — min-height pour zone de drop même sans contenu */}
+                                {/* Timeline Area — hauteur fixe en px pour alignement précis */}
                                 <div
                                     className={cn(
-                                        "relative min-h-[560px] flex-1 bg-background/50 transition-colors",
+                                        "relative transition-colors",
                                         !readOnly && dropTargetDayIdx === i && "bg-primary/10 ring-1 ring-inset ring-primary/30"
                                     )}
+                                    style={{ height: `${GRID_HEIGHT}px` }}
                                     onDragOver={readOnly ? undefined : (e) => {
                                         e.preventDefault()
                                         e.dataTransfer.dropEffect = "move"
@@ -194,59 +289,65 @@ export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs
                                         const raw = e.dataTransfer.getData(DRAG_MIME)
                                         if (!raw) return
                                         let jobId: string
-                                        try {
-                                            jobId = JSON.parse(raw).jobId
-                                        } catch {
-                                            return
-                                        }
+                                        try { jobId = JSON.parse(raw).jobId } catch { return }
                                         if (!jobId) return
                                         const dateKey = format(day, "yyyy-MM-dd")
                                         const { hour, minute } = timeFromDropY(e.clientY, e.currentTarget.getBoundingClientRect())
                                         const res = await rescheduleJob(jobId, dateKey, hour, { minute })
                                         if (res.error) toast.error(res.error)
-                                        else {
-                                            toast.success("Rendez-vous déplacé")
-                                            router.refresh()
-                                        }
+                                        else { toast.success("Rendez-vous déplacé"); router.refresh() }
                                     }}
                                 >
-                                    {/* Grid Lines */}
+                                    {/* Grid Lines (heure pleine) */}
                                     {Array.from({ length: END_HOUR - START_HOUR }).map((_, idx) => (
-                                        <div key={idx} className="absolute w-full border-t border-dashed border-muted/30 pointer-events-none" style={{ top: `${(idx / (END_HOUR - START_HOUR)) * 100}%` }} />
-                                    ))}
-
-                                    {/* Availabilities (Background Events) */}
-                                    {dayAvails.map((avail, idx) => (
                                         <div
-                                            key={`av-${idx}`}
-                                            className="absolute w-full bg-slate-200 dark:bg-slate-800/50 border-l-4 border-slate-400 opacity-60 rounded-sm px-1 py-0.5 pointer-events-none z-0"
-                                            style={{
-                                                top: `${getTopOffset(avail.startTime)}%`,
-                                                height: `${getHeight(avail.startTime, avail.endTime)}%`
-                                            }}
-                                        >
-                                            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Dispo</span>
-                                        </div>
+                                            key={idx}
+                                            className="absolute w-full border-t border-dashed border-muted/30 pointer-events-none"
+                                            style={{ top: `${idx * 48}px` }}
+                                        />
+                                    ))}
+                                    {/* Demi-heures */}
+                                    {Array.from({ length: END_HOUR - START_HOUR }).map((_, idx) => (
+                                        <div
+                                            key={`h-${idx}`}
+                                            className="absolute w-full border-t border-dotted border-muted/15 pointer-events-none"
+                                            style={{ top: `${idx * 48 + 24}px` }}
+                                        />
                                     ))}
 
-                                    {/* Jobs (Foreground Events) */}
-                                    {dayJobs.map((job, idx) => {
+                                    {/* Disponibilités */}
+                                    {dayAvails.map((avail, idx) => {
+                                        const [sh, sm] = avail.startTime.split(":").map(Number)
+                                        const [eh, em] = avail.endTime.split(":").map(Number)
+                                        const topPx = ((sh - START_HOUR) * 60 + sm) / TOTAL_MINUTES * GRID_HEIGHT
+                                        const heightPx = ((eh - START_HOUR) * 60 + em - (sh - START_HOUR) * 60 - sm) / TOTAL_MINUTES * GRID_HEIGHT
+                                        return (
+                                            <div
+                                                key={`av-${idx}`}
+                                                className="absolute w-full bg-slate-200 dark:bg-slate-800/50 border-l-4 border-slate-400 opacity-50 rounded-sm px-1 py-0.5 pointer-events-none z-0"
+                                                style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+                                            >
+                                                <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Dispo</span>
+                                            </div>
+                                        )
+                                    })}
+
+                                    {/* Jobs — côte à côte si chevauchement */}
+                                    {dayJobs.map((job) => {
                                         const jDate = new Date(job.scheduledDate)
-                                        // Use Local Time for positioning
-                                        const timeStr = jDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                                        const startMin = jDate.getHours() * 60 + jDate.getMinutes()
+                                        const topPx = (startMin - START_HOUR * 60) / TOTAL_MINUTES * GRID_HEIGHT
 
-                                        // Helper to safely parse time if locale returns strange format (e.g. "14 h 00")
-                                        // Force HH:MM format manually if needed, but fr-FR usually returns HH:mm
-                                        // Let's rely on getHours/getMinutes directly for calculation to be safe
+                                        const duration = job.durationMin || jobDurationMinutes(job.services || []) || 60
+                                        const heightPx = Math.max(22, duration / TOTAL_MINUTES * GRID_HEIGHT)
 
-                                        const startMinutes = (jDate.getHours() * 60) + jDate.getMinutes()
-                                        // Re-calculate top offset from minutes directly
-                                        // START_HOUR = 7
-                                        const startOffsetMin = (START_HOUR * 60)
-                                        const topPct = ((startMinutes - startOffsetMin) / TOTAL_MINUTES) * 100
+                                        const { colIndex, totalCols } = layout.get(job.id) ?? { colIndex: 0, totalCols: 1 }
+                                        const colW = 100 / totalCols
+                                        const leftPct = colIndex * colW
+                                        // Légère marge entre les colonnes
+                                        const GAP = totalCols > 1 ? 1.5 : 2.5
+                                        const widthPct = colW - GAP
 
-                                        const duration = job.durationMin || jobDurationMinutes(job.services || [])
-                                        const heightPct = (duration / TOTAL_MINUTES) * 100
                                         const { box, text, opacity } = getJobStatusCalendarClasses(job.status)
                                         const vehicleStr = jobVehicleSummary(job)
                                         const servicesStr = jobServicesSummary(job)
@@ -254,11 +355,9 @@ export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs
                                         const priceStr = formatJobPrice(job)
                                         const compactCard = duration < 50
 
-                                        // Recalculate End Time String for Display
-                                        const endTotalMin = startMinutes + duration
-                                        const endH = Math.floor(endTotalMin / 60)
-                                        const endM = endTotalMin % 60
-                                        const endTimeStr = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+                                        const timeStr = `${String(jDate.getHours()).padStart(2, "0")}:${String(jDate.getMinutes()).padStart(2, "0")}`
+                                        const endTotalMin = startMin + duration
+                                        const endTimeStr = `${String(Math.floor(endTotalMin / 60)).padStart(2, "0")}:${String(endTotalMin % 60).padStart(2, "0")}`
 
                                         const dragPayload = JSON.stringify({ jobId: job.id })
 
@@ -271,50 +370,42 @@ export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs
                                                             ev.dataTransfer.setData(DRAG_MIME, dragPayload)
                                                             ev.dataTransfer.effectAllowed = "move"
                                                         }}
-                                                        className={`absolute left-[2.5%] z-10 flex w-[95%] ${readOnly ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} flex-col overflow-hidden rounded-lg border p-1.5 ${readOnly ? 'pl-2' : 'pl-5'} text-xs shadow-md transition-transform hover:scale-[1.02] ${box} ${text} ${opacity ?? ""}`}
+                                                        className={cn(
+                                                            "absolute z-10 flex flex-col overflow-hidden rounded-md border text-xs shadow-md transition-transform hover:scale-[1.02] hover:z-20",
+                                                            readOnly ? "cursor-pointer pl-1.5" : "cursor-grab active:cursor-grabbing pl-4",
+                                                            box, text, opacity ?? ""
+                                                        )}
                                                         style={{
-                                                            top: `${topPct}%`,
-                                                            height: `${heightPct}%`,
+                                                            top: `${topPx}px`,
+                                                            height: `${heightPx}px`,
+                                                            left: `${leftPct + GAP / 2}%`,
+                                                            width: `${widthPct}%`,
                                                         }}
-                                                        title={readOnly ? `${[job.client?.user?.name, vehicleStr, servicesStr].filter(Boolean).join(" · ")}` : `Glisser pour déplacer — ${[job.client?.user?.name, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
+                                                        title={`${timeStr} – ${endTimeStr} · ${[job.client?.user?.name, vehicleStr, servicesStr].filter(Boolean).join(" · ")}`}
                                                     >
                                                         {!readOnly && (
                                                             <div className="pointer-events-none absolute left-0.5 top-1 opacity-40">
-                                                                <GripVertical className="size-3.5" aria-hidden />
+                                                                <GripVertical className="size-3" aria-hidden />
                                                             </div>
                                                         )}
+                                                        {/* Heure toujours visible */}
+                                                        <div className="shrink-0 font-semibold leading-tight text-[9px] sm:text-[10px] opacity-80 pt-0.5">{timeStr}</div>
                                                         {compactCard ? (
-                                                            <>
-                                                                <div className="truncate font-bold leading-tight">{job.client?.user?.name ?? "—"}</div>
-                                                                <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
-                                                                    {[vehicleStr, servicesStr || "Sans service", assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
-                                                                </div>
-                                                            </>
+                                                            <div className="truncate font-bold leading-tight text-[10px]">{job.client?.user?.name ?? "—"}</div>
                                                         ) : (
                                                             <>
-                                                                <div className="shrink-0 truncate font-bold leading-tight">{job.client?.user?.name ?? "—"}</div>
-                                                                {vehicleStr ? (
-                                                                    <div className="shrink-0 truncate text-[10px] opacity-90" title={vehicleStr}>
-                                                                        {vehicleStr}
-                                                                    </div>
-                                                                ) : null}
-                                                                <div className="min-h-0 flex-1 text-[10px] leading-tight opacity-85 line-clamp-2" title={servicesStr || undefined}>
-                                                                    {servicesStr || <span className="opacity-70">Aucun service</span>}
-                                                                </div>
-                                                                <div className="mt-auto flex shrink-0 items-end justify-between gap-1 border-t border-black/10 pt-0.5 dark:border-white/15">
-                                                                    <div className="min-w-0 flex-1 truncate text-[10px] font-medium" title={assigneesStr || undefined}>
-                                                                        {assigneesStr ? assigneesStr : <span className="opacity-70">Non assigné</span>}
-                                                                    </div>
-                                                                    {priceStr ? (
-                                                                        <span className="shrink-0 text-[10px] font-bold tabular-nums">{priceStr}</span>
-                                                                    ) : (
-                                                                        <span className="shrink-0 text-[10px] opacity-60">—</span>
-                                                                    )}
+                                                                <div className="shrink-0 truncate font-bold leading-tight text-[10px] sm:text-xs">{job.client?.user?.name ?? "—"}</div>
+                                                                {vehicleStr && (
+                                                                    <div className="shrink-0 truncate text-[9px] opacity-80">{vehicleStr}</div>
+                                                                )}
+                                                                <div className="min-h-0 flex-1 text-[9px] leading-tight opacity-75 line-clamp-2">
+                                                                    {servicesStr || <span className="opacity-60">Aucun service</span>}
                                                                 </div>
                                                             </>
                                                         )}
                                                     </div>
                                                 </DialogTrigger>
+
                                                 <DialogContent>
                                                     <DialogHeader>
                                                         <DialogTitle>Détails du Rendez-vous</DialogTitle>
@@ -331,7 +422,7 @@ export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs
                                                             <div className="text-muted-foreground text-sm flex items-center gap-2">
                                                                 <MapPin size={14} className="text-primary" />
                                                                 {job.client.address ? (
-                                                                    <a 
+                                                                    <a
                                                                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.client.address)}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
@@ -339,9 +430,7 @@ export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs
                                                                     >
                                                                         {job.client.address}
                                                                     </a>
-                                                                ) : (
-                                                                    "Aucune adresse"
-                                                                )}
+                                                                ) : "Aucune adresse"}
                                                             </div>
                                                             <div className="text-sm mt-2 font-medium">
                                                                 {[jobVehicleSummary(job), job.vehicle?.color].filter(Boolean).join(" · ") || "—"}
@@ -360,8 +449,8 @@ export function EmployeeAgenda({ jobs, availabilities, readOnly = true }: { jobs
                                                             <div className="flex flex-wrap gap-2">
                                                                 {job.services?.length ? (
                                                                     job.services.map((s: any) => (
-                                                                        <Badge key={s.service.id} variant="outline">
-                                                                            {s.service.name}
+                                                                        <Badge key={s.service?.id ?? s.serviceId} variant="outline">
+                                                                            {s.service?.name ?? "—"}
                                                                         </Badge>
                                                                     ))
                                                                 ) : (
