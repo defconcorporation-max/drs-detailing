@@ -48,7 +48,8 @@ export async function getDashboardStats() {
                 employee: { include: { user: true } }, 
                 client: { include: { user: true } }, 
                 vehicle: true, 
-                services: { include: { service: true } } 
+                services: { include: { service: true } },
+                timeLogs: true,
             }
         }),
         
@@ -60,18 +61,19 @@ export async function getDashboardStats() {
                 employee: { include: { user: true } }, 
                 client: { include: { user: true } }, 
                 vehicle: true, 
-                services: { include: { service: true } } 
+                services: { include: { service: true } },
+                timeLogs: true,
             }
         }),
         
         prisma.job.findMany({ 
             where: { scheduledDate: { gte: startOfMonth }, status: { not: 'CANCELLED' } },
-            include: { employees: { include: { user: true } }, employee: { include: { user: true } } }
+            include: { employees: { include: { user: true } }, employee: { include: { user: true } }, timeLogs: true }
         }),
         
         prisma.job.findMany({ 
             where: { scheduledDate: { gte: startOfYear }, status: { not: 'CANCELLED' } },
-            include: { employees: { include: { user: true } }, employee: { include: { user: true } } }
+            include: { employees: { include: { user: true } }, employee: { include: { user: true } }, timeLogs: true }
         }),
         
         prisma.job.findMany({
@@ -86,6 +88,25 @@ export async function getDashboardStats() {
         })
     ])
 
+    // Calcule la durée réelle d'un job en heures
+    // Priorité : 1) startedAt→completedAt  2) timeLogs  3) durationMin  4) 60 min
+    const resolveJobDurationHrs = (job: any): number => {
+        // 1) Temps réel chrono (heure de début → heure de fin)
+        if (job.startedAt && job.completedAt) {
+            const mins = (new Date(job.completedAt).getTime() - new Date(job.startedAt).getTime()) / 60000
+            if (mins > 0) return mins / 60
+        }
+        // 2) Somme des timeLogs
+        if (job.timeLogs?.length) {
+            const totalMin = job.timeLogs.reduce((acc: number, log: any) => acc + (log.durationMin || 0), 0)
+            if (totalMin > 0) return totalMin / 60
+        }
+        // 3) Durée manuelle
+        if (job.durationMin && job.durationMin > 0) return job.durationMin / 60
+        // 4) Défaut 60 min
+        return 1
+    }
+
     const calculateMetrics = (jobs: any[]) => {
         let revenue = 0
         let hours = 0
@@ -94,7 +115,7 @@ export async function getDashboardStats() {
         
         jobs.forEach(job => {
             revenue += job.totalPrice || 0
-            const durationHrs = (job.durationMin || 60) / 60
+            const durationHrs = resolveJobDurationHrs(job)
             hours += durationHrs
             
             const emps = job.employees?.length ? job.employees : (job.employee ? [job.employee] : [])
