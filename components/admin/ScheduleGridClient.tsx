@@ -42,6 +42,55 @@ const END_HOUR = 21
 
 const DRAG_MIME = "application/x-drs-job"
 
+/**
+ * Calcule pour chaque job du jour :
+ *   - lane       : index du couloir (0, 1, 2…)
+ *   - totalLanes : nombre total de couloirs au moment du chevauchement max
+ *
+ * Algorithme greedy : on trie par heure de début, on assigne le premier
+ * couloir libre, et on détermine ensuite le nombre max de couloirs
+ * simultanément occupés pendant la durée de chaque job.
+ */
+function computeJobLaneMap(
+    dayJobs: any[],
+    getDuration: (job: any) => number
+): Map<string, { lane: number; totalLanes: number }> {
+    if (!dayJobs.length) return new Map()
+
+    const items = dayJobs
+        .map((job) => {
+            const dur = Math.max(60, getDuration(job))
+            const start = new Date(job.scheduledDate).getTime()
+            return { id: job.id, start, end: start + dur * 60 * 1000 }
+        })
+        .sort((a, b) => a.start - b.start)
+
+    // Assign lanes greedily
+    const laneEndTimes: number[] = []
+    const laneAssignments = new Map<string, number>()
+
+    for (const item of items) {
+        let lane = laneEndTimes.findIndex((t) => t <= item.start)
+        if (lane === -1) {
+            lane = laneEndTimes.length
+            laneEndTimes.push(item.end)
+        } else {
+            laneEndTimes[lane] = item.end
+        }
+        laneAssignments.set(item.id, lane)
+    }
+
+    // Compute totalLanes = max concurrent lanes during each job
+    const result = new Map<string, { lane: number; totalLanes: number }>()
+    for (const item of items) {
+        const overlapping = items.filter((o) => o.start < item.end && o.end > item.start)
+        const maxLane = Math.max(...overlapping.map((o) => laneAssignments.get(o.id) ?? 0))
+        result.set(item.id, { lane: laneAssignments.get(item.id)!, totalLanes: maxLane + 1 })
+    }
+
+    return result
+}
+
 export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, availabilities, serviceZones = null }: Props) {
     const router = useRouter()
     const [slotOpen, setSlotOpen] = useState(false)
@@ -120,6 +169,21 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
 
     const visibleDays = viewMode === "day" ? weekMeta.filter((m) => m.key === selectedDayKey) : weekMeta
     if (visibleDays.length === 0 && weekMeta.length > 0) visibleDays.push(weekMeta[0])
+
+    // Pré-calcul des lanes par jour — résout les chevauchements entre jobs
+    const dayLaneMaps = useMemo(() => {
+        const maps = new Map<string, Map<string, { lane: number; totalLanes: number }>>()
+        const activeDays = viewMode === "day" ? weekMeta.filter((m) => m.key === selectedDayKey) : weekMeta
+        for (const col of activeDays) {
+            const dayStr = col.key
+            const dayJobsForLane = jobs.filter((job: any) => localDateKey(job.scheduledDate) === dayStr)
+            maps.set(
+                dayStr,
+                computeJobLaneMap(dayJobsForLane, (job: any) => job.durationMin || jobDurationMinutes(job.services || []))
+            )
+        }
+        return maps
+    }, [jobs, weekMeta, viewMode, selectedDayKey])
 
     const gridColsClass = viewMode === "day" ? "grid-cols-[60px_1fr]" : "grid-cols-[40px_repeat(7,1fr)] sm:grid-cols-[60px_repeat(7,1fr)]"
     const minWClass = "min-w-full"
@@ -250,9 +314,8 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                 ).size
                                 const remaining = Math.max(0, availableCount - busyEmployeeCount)
                                 
-                                const startingItems = dayJobs.length + dayEvents.length
-                                const columns = Math.max(startingItems, 1)
-                                const width = 100 / columns
+                                const eventColumns = Math.max(dayEvents.length, 1)
+                                const eventWidth = 100 / eventColumns
                                 const availabilityStyle =
                                     availableCount > 0 ? { backgroundColor: "rgba(0,0,0,0.04)" } : undefined
 
@@ -307,8 +370,13 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                         />
 
                                         <div className="pointer-events-none relative z-10 h-full w-full p-1">
-                                            {dayJobs.map((job: any, idx: number) => {
-                                                const left = idx * width
+                                            {dayJobs.map((job: any) => {
+                                                // Récupère la lane pré-calculée pour ce job
+                                                const laneInfo = dayLaneMaps.get(dayStr)?.get(job.id)
+                                                const lane = laneInfo?.lane ?? 0
+                                                const totalLanes = laneInfo?.totalLanes ?? 1
+                                                const jobLeft = (lane / totalLanes) * 100
+                                                const jobWidth = 100 / totalLanes
                                                 const dur = job.durationMin || jobDurationMinutes(job.services || [])
                                                 const spanRows = Math.max(1, dur / 60)
                                                 const heightPx = spanRows * 52
@@ -317,8 +385,8 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                                         key={job.id}
                                                         className="pointer-events-auto absolute top-0"
                                                         style={{
-                                                            left: `${left}%`,
-                                                            width: `${width}%`,
+                                                            left: `${jobLeft}%`,
+                                                            width: `${jobWidth}%`,
                                                             height: `${heightPx}px`,
                                                             zIndex: 20,
                                                         }}
@@ -328,8 +396,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                                 )
                                             })}
                                             {dayEvents.map((ev: any, idx: number) => {
-                                                // On décale après les jobs qui COMMENCENT à cette heure
-                                                const left = (dayJobs.length + idx) * width
+                                                const left = idx * eventWidth
                                                 const spanRows = Math.max(1, (ev.durationMin || 60) / 60)
                                                 const heightPx = spanRows * 52
                                                 return (
@@ -338,7 +405,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                                         className="pointer-events-auto absolute top-0"
                                                         style={{
                                                             left: `${left}%`,
-                                                            width: `${width}%`,
+                                                            width: `${eventWidth}%`,
                                                             height: `${heightPx}px`,
                                                             zIndex: 20,
                                                         }}
