@@ -31,6 +31,9 @@ export async function createJob(data: FormData) {
     const extrasMap = parseServiceExtrasMap(data)
     const employeeIds = data.getAll("employeeId") as string[]
     const isInShop = data.get("isInShop") === "on"
+    const statusRaw = (data.get("status") as string) || "PENDING"
+    const validStatuses = ["REQUESTED", "PENDING", "CONFIRMED", "SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "RESCHEDULE_REQUESTED"]
+    const jobStatus = validStatuses.includes(statusRaw) ? statusRaw : "PENDING"
 
     // Custom service (free-text, not in catalog)
     const customServiceName = (data.get("customServiceName") as string)?.trim() || null
@@ -77,7 +80,7 @@ export async function createJob(data: FormData) {
                 clientId,
                 vehicleId: vehicleId || null,
                 scheduledDate,
-                status: "PENDING",
+                status: jobStatus,
                 totalPrice: finalPrice || null,
                 customServiceName,
                 customServicePrice,

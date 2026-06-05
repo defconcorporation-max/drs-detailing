@@ -5,7 +5,7 @@ import { updateJob, deleteJob } from "@/lib/actions/jobs"
 import { checkTeamAvailability } from "@/lib/actions/availability"
 import { jobDurationMinutes, parseExtraIds } from "@/lib/job-metrics"
 import { localDateKey, localTimeHM } from "@/lib/date-local"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -85,11 +85,12 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                     <Edit size={14} className="text-primary" />
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-2xl">
-                <DialogHeader>
+            <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col rounded-2xl p-0">
+                <DialogHeader className="px-5 pt-5 pb-2 border-b shrink-0">
                     <DialogTitle className="font-display text-xl uppercase">Modifier le job</DialogTitle>
                 </DialogHeader>
 
+                <div className="overflow-y-auto flex-1 min-h-0">
                 <form
                     action={async (formData) => {
                         setLoading(true)
@@ -108,7 +109,7 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         setLoading(false)
                         setOpen(false)
                     }}
-                    className="space-y-6 py-2"
+                    className="space-y-6 p-5"
                 >
                     <input type="hidden" name="scheduledAtUtcMs" value={scheduledAtUtcMs} />
                     <div className="flex flex-col gap-2 rounded-xl border border-border/50 bg-muted/20 p-3 text-sm">
@@ -284,15 +285,16 @@ export function EditJobDialog({ job, clients, employees, services }: { job: any;
                         <Input name="notes" placeholder="Code porte, instructions…" defaultValue={job.notes || ""} className="rounded-xl" />
                     </div>
 
-                    <DialogFooter>
+                    <div className="pb-4">
                         <Button type="submit" disabled={loading} className="w-full gap-2 rounded-xl">
                             {loading ? <Loader2 className="size-4 animate-spin" /> : <Save size={16} />}
                             Sauvegarder les modifications
                         </Button>
-                    </DialogFooter>
+                    </div>
                 </form>
+                </div>
 
-                <div className="mt-6 border-t pt-4">
+                <div className="border-t px-5 py-4 shrink-0">
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Zone de danger</p>
                     <DeleteJobButton id={job.id} />
                 </div>

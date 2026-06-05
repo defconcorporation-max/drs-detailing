@@ -7,7 +7,7 @@ import { jobDurationMinutes } from "@/lib/job-metrics"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, Loader2, Clock, CalendarDays, Car, Users, Store } from "lucide-react"
+import { Plus, Loader2, Clock, CalendarDays, Car, Users, Store, CheckCircle2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -42,6 +42,7 @@ export function NewJobDialog({
     const [customServiceName, setCustomServiceName] = useState("")
     const [customServicePrice, setCustomServicePrice] = useState("")
     const [durationHours, setDurationHours] = useState("")
+    const [initialStatus, setInitialStatus] = useState("CONFIRMED")
 
     const [date, setDate] = useState(prefillDate || "")
     const [time, setTime] = useState(prefillTime || "09:00")
@@ -157,6 +158,7 @@ export function NewJobDialog({
             setCustomServiceName("")
             setCustomServicePrice("")
             setDurationHours("")
+            setInitialStatus("CONFIRMED")
         } else {
             alert(res.error)
         }
@@ -215,6 +217,24 @@ export function NewJobDialog({
                                 </div>
                             </div>
                         </label>
+
+                        {/* Statut initial */}
+                        <div className="space-y-1.5">
+                            <Label className="flex items-center gap-1.5 text-xs">
+                                <CheckCircle2 size={13} className="text-muted-foreground" /> Statut initial
+                            </Label>
+                            <input type="hidden" name="status" value={initialStatus} />
+                            <Select value={initialStatus} onValueChange={setInitialStatus}>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PENDING">En attente</SelectItem>
+                                    <SelectItem value="CONFIRMED">✅ Confirmé</SelectItem>
+                                    <SelectItem value="SCHEDULED">Planifié</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </div>
 

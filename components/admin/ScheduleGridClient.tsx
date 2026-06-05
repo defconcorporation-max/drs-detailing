@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback, useEffect } from "react"
+import { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -55,25 +55,33 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
     })
     const [selectedDayKey, setSelectedDayKey] = useState<string>("")
     
-    // Swipe gestures
-    const [touchStart, setTouchStart] = useState<number | null>(null)
-    const [touchEnd, setTouchEnd] = useState<number | null>(null)
-    const minSwipeDistance = 50
+    // Swipe gestures — track both X and Y to avoid triggering on vertical scroll
+    const [touchStartX, setTouchStartX] = useState<number | null>(null)
+    const [touchStartY, setTouchStartY] = useState<number | null>(null)
+    const [touchEndX, setTouchEndX] = useState<number | null>(null)
+    const [touchEndY, setTouchEndY] = useState<number | null>(null)
+    const minSwipeDistance = 60
 
     const handleTouchStart = (e: React.TouchEvent) => {
-        setTouchEnd(null)
-        setTouchStart(e.targetTouches[0].clientX)
+        setTouchEndX(null)
+        setTouchEndY(null)
+        setTouchStartX(e.targetTouches[0].clientX)
+        setTouchStartY(e.targetTouches[0].clientY)
     }
 
     const handleTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0].clientX)
+        setTouchEndX(e.targetTouches[0].clientX)
+        setTouchEndY(e.targetTouches[0].clientY)
     }
 
     const handleTouchEnd = () => {
-        if (!touchStart || !touchEnd) return
-        const distance = touchStart - touchEnd
-        const isLeftSwipe = distance > minSwipeDistance
-        const isRightSwipe = distance < -minSwipeDistance
+        if (!touchStartX || !touchEndX || !touchStartY || !touchEndY) return
+        const distX = touchStartX - touchEndX
+        const distY = touchStartY - touchEndY
+        // Only trigger swipe if horizontal movement clearly dominates vertical (not a scroll)
+        if (Math.abs(distX) < Math.abs(distY) * 1.5) return
+        const isLeftSwipe = distX > minSwipeDistance
+        const isRightSwipe = distX < -minSwipeDistance
 
         if (isLeftSwipe || isRightSwipe) {
             const currentIndex = weekMeta.findIndex(m => m.key === selectedDayKey)
@@ -343,9 +351,9 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                         </div>
 
                                         {availableCount > 0 && (
-                                            <div className="pointer-events-none absolute right-1 bottom-1 z-[5]">
-                                                <span className="rounded border bg-white/90 px-1.5 py-0.5 text-xs font-bold text-emerald-600 shadow-sm dark:bg-slate-950/90">
-                                                    {remaining} dispo
+                                            <div className="pointer-events-none absolute top-0.5 right-0.5 z-[5] flex items-center gap-0.5">
+                                                <span className="rounded bg-emerald-500/15 border border-emerald-500/30 px-1 py-px text-[8px] font-bold text-emerald-600 dark:text-emerald-400 leading-none">
+                                                    {remaining}✓
                                                 </span>
                                             </div>
                                         )}
@@ -412,8 +420,22 @@ function JobCard({
         minute: localMinute(job.scheduledDate),
     })
 
+    const [popoverOpen, setPopoverOpen] = useState(false)
+    const lastTapRef = useRef<number>(0)
+
+    const handleCardClick = (e: React.MouseEvent) => {
+        // Double-click detection: two clicks within 350ms
+        const now = Date.now()
+        if (now - lastTapRef.current < 350) {
+            setPopoverOpen(true)
+            lastTapRef.current = 0
+        } else {
+            lastTapRef.current = now
+        }
+    }
+
     return (
-        <Popover>
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger asChild>
                 <div
                     draggable
@@ -421,12 +443,13 @@ function JobCard({
                         e.dataTransfer.setData(dragMime, dragPayload)
                         e.dataTransfer.effectAllowed = "move"
                     }}
+                    onClick={handleCardClick}
                     className={`absolute z-10 flex w-full cursor-grab flex-col overflow-hidden rounded-lg py-1.5 pl-5 pr-1.5 text-xs transition-all active:cursor-grabbing hover:brightness-[1.08] hover:ring-2 hover:ring-primary/30 ${box} ${text} ${opacity ?? ""} h-full`}
                     style={{
                         minHeight: "28px",
                         ...(customColor ? { backgroundColor: customColor, color: "#fff", borderColor: customColor } : {})
                     }}
-                    title={`Glisser pour déplacer — ${[clientName, vehicleStr, servicesStr, assigneesStr, priceStr].filter(Boolean).join(" · ")}`}
+                    title={`Double-clic pour ouvrir · Glisser pour déplacer`}
                 >
                     <div className="pointer-events-none absolute left-0 top-0 flex h-full w-4 items-start justify-center pt-0.5 opacity-40">
                         <GripVertical className="size-3.5 shrink-0" aria-hidden />
