@@ -2,6 +2,7 @@ import { getJobs, getScheduleSelectors } from "@/lib/actions/jobs"
 import { getCalendarEvents } from "@/lib/actions/events"
 import { getAllAvailabilities } from "@/lib/actions/availability"
 import { getServiceZones } from "@/lib/actions/settings"
+import { getWeatherByDate } from "@/lib/actions/weather"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
 import { NewEventDialog } from "@/components/admin/NewEventDialog"
 import { ScheduleGridClient } from "@/components/admin/ScheduleGridClient"
@@ -52,19 +53,22 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
     let selectors: any = { clients: [], employees: [], services: [] }
     let availabilities: any[] = []
     let serviceZones: any = null
+    let weatherByDate: Record<string, { condition: string; temp: number }> = {}
     try {
-        const [j, e, s, a, sz] = await Promise.all([
+        const [j, e, s, a, sz, w] = await Promise.all([
             getJobs(),
             getCalendarEvents(),
             getScheduleSelectors(),
             getAllAvailabilities(startDate, weekDays[6]),
-            getServiceZones()
+            getServiceZones(),
+            getWeatherByDate(),
         ])
         jobs = j
         events = e
         selectors = s
         availabilities = a
         serviceZones = sz
+        weatherByDate = w
     } catch (e) {
         console.error("[admin/schedule]", e)
         return (
@@ -152,6 +156,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                                 selectors={selectors}
                                 availabilities={availabilities}
                                 serviceZones={serviceZones}
+                                weatherByDate={weatherByDate}
                             />
                         </div>
                     </Card>

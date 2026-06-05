@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { BrandMark } from "@/components/brand/BrandMark"
+import { InstallPWA } from "@/components/admin/InstallPWA"
 import {
     Calendar,
     Clock,
@@ -37,8 +38,16 @@ const sidebarItems = [
     { href: "/admin/settings", icon: Settings, label: "Paramètres" },
 ]
 
-export function MobileAdminNav() {
+export function MobileAdminNav({ role = "admin" }: { role?: string }) {
     const pathname = usePathname()
+
+    const filteredItems = sidebarItems.filter(item => {
+        if (role === "dispatcher") {
+            const restricted = ["/admin/reports", "/admin/accounting", "/admin/settings", "/admin/marketing", "/admin/feedbacks"]
+            if (restricted.some(r => item.href.startsWith(r))) return false
+        }
+        return true
+    })
 
     return (
         <Sheet>
@@ -63,7 +72,7 @@ export function MobileAdminNav() {
                 </div>
 
                 <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-                    {sidebarItems.map((item) => {
+                    {filteredItems.map((item) => {
                         const Icon = item.icon
                         const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/admin")
 
@@ -89,6 +98,7 @@ export function MobileAdminNav() {
                             </Link>
                         )
                     })}
+                    <InstallPWA variant="mobile" />
                 </nav>
 
                 <div className="border-t border-sidebar-border/50 bg-sidebar/50 p-4">

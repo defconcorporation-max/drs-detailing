@@ -10,6 +10,14 @@ export function middleware(request: NextRequest) {
         if (!adminCookie) {
             return NextResponse.redirect(new URL('/admin/login', request.url))
         }
+
+        // Dispatcher Role Restriction
+        if (adminCookie.value === 'dispatcher') {
+            const restrictedPaths = ['/admin/reports', '/admin/expenses', '/admin/settings']
+            if (restrictedPaths.some(rp => path.startsWith(rp))) {
+                return NextResponse.redirect(new URL('/admin', request.url))
+            }
+        }
     }
 
     // Employee Protection

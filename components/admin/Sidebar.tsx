@@ -22,6 +22,7 @@ import {
     MessageSquarePlus,
 } from "lucide-react"
 import { BrandMark } from "@/components/brand/BrandMark"
+import { InstallPWA } from "@/components/admin/InstallPWA"
 
 const sidebarItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -38,8 +39,16 @@ const sidebarItems = [
     { href: "/admin/settings", icon: Settings, label: "Paramètres" },
 ]
 
-export function AdminSidebar() {
+export function AdminSidebar({ role = "admin" }: { role?: string }) {
     const pathname = usePathname()
+
+    const filteredItems = sidebarItems.filter(item => {
+        if (role === "dispatcher") {
+            const restricted = ["/admin/reports", "/admin/accounting", "/admin/settings", "/admin/marketing", "/admin/feedbacks"]
+            if (restricted.some(r => item.href.startsWith(r))) return false
+        }
+        return true
+    })
 
     return (
         <div className="hidden md:flex h-screen w-72 flex-col border-r border-sidebar-border/80 bg-sidebar/92 text-sidebar-foreground shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition-all duration-300 dark:bg-gradient-to-b dark:from-sidebar dark:via-sidebar dark:to-black/25">
@@ -60,7 +69,7 @@ export function AdminSidebar() {
 
             {/* Navigation */}
             <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-                {sidebarItems.map((item) => {
+                {filteredItems.map((item) => {
                     const Icon = item.icon
                     const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/admin")
 
@@ -88,6 +97,11 @@ export function AdminSidebar() {
                     )
                 })}
             </nav>
+
+            {/* PWA Install Button */}
+            <div className="px-3 pb-4">
+                <InstallPWA variant="sidebar" />
+            </div>
 
             {/* Footer */}
             <div className="p-4 border-t border-sidebar-border/50 bg-sidebar/50">

@@ -26,6 +26,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
     title: "DRS Detailing — Showroom",
     description: "L’atelier numérique : rendez-vous, équipe et finition miroir.",
+    manifest: "/manifest.json",
 };
 
 export default function RootLayout({

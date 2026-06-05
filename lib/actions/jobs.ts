@@ -297,6 +297,10 @@ export async function getJobById(id: string) {
                 services: { include: { service: true } },
                 employees: { include: { user: true } },
                 timeLogs: { orderBy: { startTime: 'asc' } },
+                internalNotes: {
+                    orderBy: { createdAt: 'desc' },
+                    // Assuming author is not directly linked in Prisma since authorId is String
+                }
             }
         })
         if (!job) return null
@@ -383,5 +387,36 @@ export async function removeJobPhoto(jobId: string, type: "before" | "after", ur
         return { success: true }
     } catch (e) {
         return { error: "Erreur suppression photo" }
+    }
+}
+
+export async function addJobNote(jobId: string, content: string, authorId?: string) {
+    if (!content.trim()) return { error: "La note ne peut pas être vide" }
+
+    try {
+        const note = await prisma.jobNote.create({
+            data: {
+                jobId,
+                content,
+                authorId
+            }
+        })
+        revalidatePath(`/admin/job/${jobId}`)
+        revalidatePath(`/employee/job/${jobId}`)
+        return { success: true, note }
+    } catch (e) {
+        return { error: "Erreur lors de l'ajout de la note" }
+    }
+}
+
+export async function getJobNotes(jobId: string) {
+    try {
+        const notes = await prisma.jobNote.findMany({
+            where: { jobId },
+            orderBy: { createdAt: "desc" }
+        })
+        return notes
+    } catch (e) {
+        return []
     }
 }

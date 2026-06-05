@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 import { getDashboardStats } from "@/lib/actions/dashboard"
 import { getPendingRequests } from "@/lib/actions/client-booking"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Users, Calendar, DollarSign, AlertTriangle, Briefcase, Car, Clock, TrendingUp, PiggyBank } from "lucide-react"
+import { Users, Calendar, DollarSign, AlertTriangle, Briefcase, Car, Clock, TrendingUp, TrendingDown, PiggyBank, Activity, Trophy, Gauge } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -97,8 +97,120 @@ export default async function AdminDashboard() {
                     </Card>
                 </Link>
             )}
+            {/* Alertes jobs en retard */}
+            {stats.lateJobs?.length > 0 && (
+                <Link href="/admin/schedule">
+                    <Card className="border-orange-500/50 bg-orange-500/10 hover:bg-orange-500/20 transition-colors cursor-pointer mb-4">
+                        <CardHeader className="py-3 flex flex-row items-center gap-4">
+                            <Clock className="h-5 w-5 text-orange-500" />
+                            <div>
+                                <CardTitle className="text-base text-orange-500">
+                                    {stats.lateJobs.length} job{stats.lateJobs.length > 1 ? "s" : ""} en retard
+                                </CardTitle>
+                                <CardDescription className="text-orange-500/80">
+                                    {stats.lateJobs.map((j: any) => j.client?.user?.name).filter(Boolean).join(", ")} — Cliquez pour voir le planning
+                                </CardDescription>
+                            </div>
+                        </CardHeader>
+                    </Card>
+                </Link>
+            )}
 
+            {/* KPIs temps réel — Aujourd'hui */}
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
+                {/* Revenus aujourd'hui */}
+                <Card className="relative overflow-hidden">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Aujourd&apos;hui</CardTitle>
+                        <div className="rounded-lg bg-muted/50 p-2"><DollarSign className="h-4 w-4 text-primary" /></div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-black">{formatMoney(stats.today?.revenue ?? 0)}</div>
+                        {stats.todayVsYesterdayPct !== null && (
+                            <div className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${
+                                stats.todayVsYesterdayPct >= 0 ? "text-emerald-500" : "text-red-500"
+                            }`}>
+                                {stats.todayVsYesterdayPct >= 0
+                                    ? <TrendingUp size={11} />
+                                    : <TrendingDown size={11} />}
+                                {stats.todayVsYesterdayPct >= 0 ? "+" : ""}{stats.todayVsYesterdayPct}% vs hier
+                            </div>
+                        )}
+                        {stats.todayVsYesterdayPct === null && (
+                            <p className="text-[10px] text-muted-foreground mt-1">{stats.today?.jobCount ?? 0} job(s) aujourd&apos;hui</p>
+                        )}
+                    </CardContent>
+                </Card>
 
+                {/* Jobs en retard */}
+                <Card className={`relative overflow-hidden ${
+                    (stats.lateJobs?.length ?? 0) > 0 ? "border-orange-500/40 bg-orange-500/5" : ""
+                }`}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">En retard</CardTitle>
+                        <div className="rounded-lg bg-muted/50 p-2"><Clock className="h-4 w-4 text-orange-500" /></div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-black ${
+                            (stats.lateJobs?.length ?? 0) > 0 ? "text-orange-500" : "text-emerald-500"
+                        }`}>
+                            {stats.lateJobs?.length ?? 0}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                            {(stats.lateJobs?.length ?? 0) === 0 ? "Tout est dans les temps ✓" : "job(s) dépassent leur durée"}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                {/* Taux d'occupation équipe */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Occupation</CardTitle>
+                        <div className="rounded-lg bg-muted/50 p-2"><Gauge className="h-4 w-4 text-primary" /></div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-black">
+                            {stats.occupancyPct !== null ? `${stats.occupancyPct}%` : "—"}
+                        </div>
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${
+                                    (stats.occupancyPct ?? 0) > 85 ? "bg-orange-500" :
+                                    (stats.occupancyPct ?? 0) > 60 ? "bg-emerald-500" : "bg-primary"
+                                }`}
+                                style={{ width: `${Math.min(100, stats.occupancyPct ?? 0)}%` }}
+                            />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">De la capacité cette semaine</p>
+                    </CardContent>
+                </Card>
+
+                {/* Record mensuel */}
+                <Card className={stats.isMonthRecord ? "border-amber-500/40 bg-amber-500/5" : ""}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ce mois-ci</CardTitle>
+                        <div className="rounded-lg bg-muted/50 p-2">
+                            {stats.isMonthRecord
+                                ? <Trophy className="h-4 w-4 text-amber-500" />
+                                : <Activity className="h-4 w-4 text-primary" />}
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className={`text-2xl font-black ${stats.isMonthRecord ? "text-amber-500" : ""}`}>
+                            {formatMoney(stats.month?.revenue ?? 0)}
+                        </div>
+                        {stats.monthVsLastYearPct !== null && (
+                            <div className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${
+                                stats.monthVsLastYearPct >= 0 ? "text-emerald-500" : "text-red-500"
+                            }`}>
+                                {stats.monthVsLastYearPct >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                                {stats.monthVsLastYearPct >= 0 ? "+" : ""}{stats.monthVsLastYearPct}% vs {new Date().getFullYear() - 1}
+                                {stats.isMonthRecord && <span className="ml-1">🏆</span>}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             {/* Sections de Statistiques */}
             <div className="space-y-6">

@@ -9,6 +9,7 @@ import { logout } from "@/lib/actions/auth"
 
 const sidebarItems = [
     { href: "/employee", icon: ListTodo, label: "Mes tâches" },
+    { href: "/employee/week", icon: CalendarDays, label: "Ma semaine" },
     { href: "/employee/availability", icon: Clock, label: "Disponibilités" },
     { href: "/employee/calendar", icon: CalendarDays, label: "Mon calendrier" },
     { href: "/employee/calculator", icon: Beaker, label: "Calculateur" },

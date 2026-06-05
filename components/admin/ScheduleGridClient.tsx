@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { EditJobDialog } from "@/components/admin/EditJobDialog"
 import { EditEventDialog } from "@/components/admin/EditEventDialog"
 import { NewJobDialog } from "@/components/admin/NewJobDialog"
+import { LiveJobTimer } from "@/components/admin/LiveJobTimer"
+import { ScheduleMapClient } from "@/components/admin/ScheduleMapClient"
 import { jobDurationMinutes } from "@/lib/job-metrics"
 import { getJobStatusCalendarClasses } from "@/lib/job-calendar-style"
 import { localDateKey, localHour, localMinute } from "@/lib/date-local"
@@ -18,7 +20,7 @@ import {
     jobServicesSummary,
     jobVehicleSummary,
 } from "@/lib/job-display"
-import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical, ChevronRight, MapPin, Store, Truck } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, Car, Users, Receipt, GripVertical, ChevronRight, MapPin, Store, Truck, Map as MapIcon, Grid } from "lucide-react"
 import { rescheduleJob } from "@/lib/actions/jobs"
 
 export type WeekColumnMeta = {
@@ -35,6 +37,24 @@ type Props = {
     selectors: any
     availabilities: any[]
     serviceZones?: any
+    weatherByDate?: Record<string, { condition: string; temp: number }>
+}
+
+// Emoji météo par condition
+function weatherEmoji(condition: string): string {
+    const c = condition?.toUpperCase()
+    if (c === "RAIN" || c === "DRIZZLE") return "🌧️"
+    if (c === "STORM" || c === "THUNDERSTORM") return "⛈️"
+    if (c === "SNOW") return "❄️"
+    if (c === "CLOUDY" || c === "OVERCAST") return "☁️"
+    if (c === "PARTLY_CLOUDY") return "⛅"
+    if (c === "SUNNY" || c === "CLEAR") return "☀️"
+    return "🌤️"
+}
+
+function isRainy(condition: string): boolean {
+    const c = condition?.toUpperCase()
+    return c === "RAIN" || c === "DRIZZLE" || c === "STORM" || c === "THUNDERSTORM" || c === "SNOW"
 }
 
 const START_HOUR = 6
@@ -91,7 +111,7 @@ function computeJobLaneMap(
     return result
 }
 
-export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, availabilities, serviceZones = null }: Props) {
+export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, availabilities, serviceZones = null, weatherByDate = {} }: Props) {
     const router = useRouter()
     const [slotOpen, setSlotOpen] = useState(false)
     const [prefillDate, setPrefillDate] = useState("")
@@ -102,6 +122,7 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
         if (typeof window !== "undefined") return window.innerWidth < 1024 ? "day" : "week"
         return "week"
     })
+    const [viewType, setViewType] = useState<"grid" | "map">("grid")
     const [selectedDayKey, setSelectedDayKey] = useState<string>("")
     
     // Swipe gestures — track both X and Y to avoid triggering on vertical scroll
@@ -210,7 +231,26 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                     </Button>
                 </div>
                 
-                {viewMode === "day" && (
+                <div className="flex items-center gap-2 rounded-xl border bg-card p-1 shadow-sm w-fit ml-auto sm:ml-0">
+                    <Button 
+                        variant={viewType === "grid" ? "default" : "ghost"} 
+                        size="sm" 
+                        onClick={() => setViewType("grid")}
+                        className="rounded-lg text-xs gap-1.5 px-3"
+                    >
+                        <Grid size={14} /> Grille
+                    </Button>
+                    <Button 
+                        variant={viewType === "map" ? "default" : "ghost"} 
+                        size="sm" 
+                        onClick={() => { setViewType("map"); setViewMode("day"); }}
+                        className="rounded-lg text-xs gap-1.5 px-3"
+                    >
+                        <MapIcon size={14} /> Itinéraire
+                    </Button>
+                </div>
+                
+                {viewMode === "day" && viewType === "grid" && (
                     <div className="grid grid-cols-7 w-full gap-1 pb-1">
                         {weekMeta.map((col) => (
                             <Button
@@ -255,6 +295,17 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                         >
                             <div className="text-[8px] sm:text-[10px] uppercase tracking-widest sm:tracking-[0.2em] font-black opacity-60 mb-0.5">{col.weekdayShort.substring(0, 3)}</div>
                             <div className="text-sm sm:text-2xl tracking-tighter">{col.dayNum}</div>
+                            {weatherByDate[col.key] && (
+                                <div
+                                    className={`text-[10px] leading-none mt-0.5 ${
+                                        isRainy(weatherByDate[col.key].condition) ? "animate-pulse" : ""
+                                    }`}
+                                    title={`${weatherByDate[col.key].condition} · ${weatherByDate[col.key].temp}°C`}
+                                >
+                                    {weatherEmoji(weatherByDate[col.key].condition)}
+                                    <span className="hidden sm:inline text-[8px] opacity-70 ml-0.5">{weatherByDate[col.key].temp}°</span>
+                                </div>
+                            )}
                         </div>
                     ))}
 
@@ -431,6 +482,33 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                 </div>
             </div>
 
+            )}
+
+            {viewType === "map" && (
+                <div className="mt-4">
+                    <div className="flex items-center gap-2 mb-4 bg-primary/10 text-primary border border-primary/20 px-4 py-2.5 rounded-xl">
+                        <MapPin size={16} className="shrink-0" />
+                        <span className="text-sm font-semibold">Itinéraire optimisé pour le {weekMeta.find(m => m.key === selectedDayKey)?.weekdayShort} {weekMeta.find(m => m.key === selectedDayKey)?.dayNum}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-7 w-full gap-1 pb-4">
+                        {weekMeta.map((col) => (
+                            <Button
+                                key={col.key}
+                                variant={selectedDayKey === col.key ? "default" : "outline"}
+                                className={`flex-col h-auto py-2 px-0 gap-0 w-full ${selectedDayKey === col.key ? "shadow-md bg-primary text-primary-foreground ring-2 ring-primary/20" : "bg-card text-muted-foreground"}`}
+                                onClick={() => setSelectedDayKey(col.key)}
+                            >
+                                <span className="text-[10px] uppercase font-bold">{col.weekdayShort.substring(0, 3)}</span>
+                                <span className="text-sm font-black">{col.dayNum}</span>
+                            </Button>
+                        ))}
+                    </div>
+
+                    <ScheduleMapClient jobs={jobs} selectedDayKey={selectedDayKey} />
+                </div>
+            )}
+
             <NewJobDialog
                 clients={selectors.clients}
                 employees={selectors.employees}
@@ -526,6 +604,9 @@ function JobCard({
                             <div className="line-clamp-2 text-[9px] leading-tight opacity-90">
                                 {[vehicleStr, servicesStr || "Sans service", matchedZone ? `📍 ${matchedZone}` : null, assigneesStr || "Non assigné", priceStr].filter(Boolean).join(" · ")}
                             </div>
+                            {job.status === "IN_PROGRESS" && job.startedAt && (
+                                <LiveJobTimer startedAt={job.startedAt} durationMin={durationMin} compact />
+                            )}
                         </>
                     ) : (
                         <>
@@ -562,11 +643,16 @@ function JobCard({
                                 <div className="min-w-0 flex-1 truncate text-[10px] font-medium" title={assigneesStr || undefined}>
                                     {assigneesStr ? assigneesStr : <span className="opacity-70">Non assigné</span>}
                                 </div>
-                                {priceStr ? (
-                                    <span className="shrink-0 text-[10px] font-bold tabular-nums">{priceStr}</span>
-                                ) : (
-                                    <span className="shrink-0 text-[10px] opacity-60">—</span>
-                                )}
+                                <div className="flex items-center gap-1 shrink-0">
+                                    {job.status === "IN_PROGRESS" && job.startedAt && (
+                                        <LiveJobTimer startedAt={job.startedAt} durationMin={durationMin} compact />
+                                    )}
+                                    {priceStr ? (
+                                        <span className="text-[10px] font-bold tabular-nums">{priceStr}</span>
+                                    ) : (
+                                        <span className="text-[10px] opacity-60">—</span>
+                                    )}
+                                </div>
                             </div>
                         </>
                     )}

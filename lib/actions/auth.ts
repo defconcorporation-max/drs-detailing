@@ -12,13 +12,15 @@ export async function loginAdmin(formData: FormData) {
 
     // Check DB Admin User password
     const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
+    const isDispatcher = password === 'dispatcher'
 
     // Fallback or DB check
-    const isValid = (adminUser && adminUser.password === password) || password === 'admin'
+    const isValidAdmin = (adminUser && adminUser.password === password) || password === 'admin'
 
-    if (isValid) {
+    if (isValidAdmin || isDispatcher) {
+        const roleStr = isDispatcher ? "dispatcher" : "admin"
         const cookieStore = await cookies()
-        cookieStore.set("drs_admin_session", "true", { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 30 })
+        cookieStore.set("drs_admin_session", roleStr, { httpOnly: true, path: '/', maxAge: 60 * 60 * 24 * 30 })
         return { success: true }
     } else {
         return { error: "Mot de passe incorrect" }

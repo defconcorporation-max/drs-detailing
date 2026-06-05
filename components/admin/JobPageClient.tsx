@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { startJob, completeJob, removeJobPhoto } from "@/lib/actions/jobs"
 import Link from "next/link"
+import { JobNotesTimeline } from "@/components/admin/JobNotesTimeline"
 
 type Props = {
     job: any
@@ -320,17 +321,22 @@ export function JobPageClient({ job: initialJob }: Props) {
                 onRemove={(url) => handleRemovePhoto("after", url)}
             />
 
-            {/* Notes */}
+            )}
+
+            {/* Notes du client */}
             {job.notes && (
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Notes</CardTitle>
+                        <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Notes de réservation</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
                         <p className="text-sm">{job.notes}</p>
                     </CardContent>
                 </Card>
             )}
+
+            {/* Internal Notes Timeline */}
+            <JobNotesTimeline jobId={job.id} initialNotes={job.internalNotes || []} />
         </div>
     )
 }

@@ -180,6 +180,7 @@ model Job {
   
   totalPrice Float?
   notes      String?
+  internalNotes JobNote[]
 
   // Service personnalisé (hors catalogue)
   customServiceName  String?
@@ -401,4 +402,16 @@ model SystemSetting {
   cityColors         String?  // JSON: {"Laval": "#3b82f6", "Montréal": "#f59e0b", ...}
   serviceZones       String?  // JSON GeoJSON FeatureCollection
   updatedAt          DateTime @updatedAt
+}
+
+model JobNote {
+  id        String   @id @default(uuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  content   String
+  authorId  String?  // Reference to User who created the note
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

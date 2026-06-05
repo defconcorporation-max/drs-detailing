@@ -83,3 +83,52 @@ export async function deleteEmployee(id: string) {
     revalidatePath('/admin/team')
     redirect('/admin/team')
 }
+
+export async function getEmployeeWeekSchedule(userId: string) {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { employeeProfile: true }
+    })
+    if (!user || !user.employeeProfile) throw new Error("Employee not found")
+
+    const now = new Date()
+    // Lundi de cette semaine
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1))
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    // Dimanche fin de journée
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 7)
+
+    const [jobs, availabilities] = await Promise.all([
+        prisma.job.findMany({
+            where: {
+                scheduledDate: { gte: startOfWeek, lt: endOfWeek },
+                status: { not: "CANCELLED" },
+                OR: [
+                    { employeeId: user.employeeProfile.id },
+                    { employees: { some: { id: user.employeeProfile.id } } }
+                ]
+            },
+            orderBy: { scheduledDate: "asc" },
+            include: {
+                client: { include: { user: true } },
+                vehicle: true,
+                services: { include: { service: true } },
+                timeLogs: true,
+            }
+        }),
+        prisma.availability.findMany({
+            where: {
+                employeeId: user.employeeProfile.id,
+                OR: [
+                    { date: { gte: startOfWeek, lt: endOfWeek } },
+                    { dayOfWeek: { gte: 0 } }
+                ]
+            }
+        })
+    ])
+
+    return { jobs, availabilities, startOfWeek }
+}
