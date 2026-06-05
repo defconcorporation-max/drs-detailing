@@ -250,9 +250,8 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                                 ).size
                                 const remaining = Math.max(0, availableCount - busyEmployeeCount)
                                 
-                                // On compte tous les items qui OCCUPENT cette case (jobs ou événements)
-                                const totalActiveItems = activeJobs.length + activeEvents.length
-                                const columns = Math.max(totalActiveItems, availableCount || 1)
+                                const startingItems = dayJobs.length + dayEvents.length
+                                const columns = Math.max(startingItems, 1)
                                 const width = 100 / columns
                                 const availabilityStyle =
                                     availableCount > 0 ? { backgroundColor: "rgba(0,0,0,0.04)" } : undefined
