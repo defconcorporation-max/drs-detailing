@@ -53,3 +53,4 @@ next-env.d.ts
 /tmp/
 /prisma/generated-client/
 /prisma/fresh-client/
+.env*

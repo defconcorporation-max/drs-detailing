@@ -3,6 +3,7 @@
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { buildLinesFromIds, parseServiceExtrasMap, totalsFromLines } from "@/lib/parse-job-extras"
+import { sendSMS } from "@/lib/actions/sms"
 
 /** Date/heure interprétées en local dans le navigateur (ms UTC) — évite le décalage si le serveur est en autre fuseau. */
 function scheduledDateFromFormData(data: FormData): Date {
@@ -274,10 +275,31 @@ export async function toggleJobServiceDone(jobId: string, serviceId: string, isD
 
 export async function updateJobStatus(id: string, status: string) {
     try {
-        await prisma.job.update({
+        const job = await prisma.job.update({
             where: { id },
-            data: { status }
+            data: { status },
+            include: { client: { include: { user: true } } }
         })
+
+        // Automation: SMS on status change
+        if (job.client?.user?.phone) {
+            if (status === "CONFIRMED") {
+                await sendSMS(
+                    job.clientId,
+                    job.client.user.phone,
+                    `DRS Detailing: Votre rendez-vous est maintenant CONFIRMÉ pour le ${job.scheduledDate.toLocaleDateString('fr-CA')}. Merci de votre confiance !`,
+                    job.id
+                ).catch(console.error)
+            } else if (status === "COMPLETED") {
+                await sendSMS(
+                    job.clientId,
+                    job.client.user.phone,
+                    `DRS Detailing: Votre véhicule est prêt ! Merci d'avoir fait appel à nos services.`,
+                    job.id
+                ).catch(console.error)
+            }
+        }
+
         revalidatePath(`/employee/job/${id}`)
         revalidatePath('/admin/schedule')
         revalidatePath(`/admin/job/${id}`)
@@ -334,13 +356,24 @@ export async function startJob(jobId: string) {
 export async function completeJob(jobId: string) {
     try {
         const now = new Date()
-        await prisma.job.update({
+        const job = await prisma.job.update({
             where: { id: jobId },
             data: {
                 status: "COMPLETED",
                 completedAt: now,
-            }
+            },
+            include: { client: { include: { user: true } } }
         })
+        
+        if (job.client?.user?.phone) {
+            await sendSMS(
+                job.clientId,
+                job.client.user.phone,
+                `DRS Detailing: Votre véhicule est prêt ! Merci d'avoir fait appel à nos services.`,
+                job.id
+            ).catch(console.error)
+        }
+
         revalidatePath(`/admin/job/${jobId}`)
         revalidatePath('/admin')
         revalidatePath('/admin/schedule')

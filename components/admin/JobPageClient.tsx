@@ -13,6 +13,7 @@ import {
 import { startJob, completeJob, removeJobPhoto } from "@/lib/actions/jobs"
 import Link from "next/link"
 import { JobNotesTimeline } from "@/components/admin/JobNotesTimeline"
+import { SmsDialog } from "@/components/admin/SmsDialog"
 
 type Props = {
     job: any
@@ -155,7 +156,20 @@ export function JobPageClient({ job: initialJob }: Props) {
                     </h1>
                     <p className="text-sm text-muted-foreground capitalize">{dateStr} à {timeStr}</p>
                 </div>
-                <span className={`shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_COLORS[job.status] || ""}`}>
+                <SmsDialog 
+                    clientId={job.clientId} 
+                    clientPhone={job.client?.user?.phone} 
+                    clientName={job.client?.user?.name}
+                    jobId={job.id} 
+                />
+                <span className={`hidden md:inline-flex shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_COLORS[job.status] || ""}`}>
+                    {STATUS_LABELS[job.status] || job.status}
+                </span>
+            </div>
+            
+            {/* Mobile Status Badge */}
+            <div className="md:hidden flex">
+                <span className={`w-full text-center text-xs font-semibold px-3 py-1.5 rounded-xl border ${STATUS_COLORS[job.status] || ""}`}>
                     {STATUS_LABELS[job.status] || job.status}
                 </span>
             </div>

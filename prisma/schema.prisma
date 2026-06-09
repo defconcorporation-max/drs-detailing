@@ -58,6 +58,7 @@ model ClientProfile {
 
   vehicles     Vehicle[]
   jobs         Job[]
+  smsMessages  SmsMessage[]
 }
 
 model EmployeeProfile {
@@ -204,6 +205,7 @@ model Job {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  smsMessages SmsMessage[]
 }
 
 model JobService {
@@ -414,4 +416,21 @@ model JobNote {
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model SmsMessage {
+  id        String   @id @default(uuid())
+  clientId  String
+  client    ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  jobId     String?
+  job       Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  
+  direction String   // "INBOUND" or "OUTBOUND"
+  content   String
+  status    String   @default("SENT") // SENT, DELIVERED, FAILED, RECEIVED
+  
+  twilioSid String?  @unique
+  
+  createdAt DateTime @default(now())
 }
