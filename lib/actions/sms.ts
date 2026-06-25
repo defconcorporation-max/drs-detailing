@@ -62,3 +62,43 @@ export async function getSmsHistory(clientId: string) {
         return { error: "Impossible de récupérer l'historique des SMS." }
     }
 }
+
+export async function getSmsConversations() {
+    try {
+        const clients = await prisma.clientProfile.findMany({
+            include: {
+                user: true,
+                smsMessages: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
+                }
+            }
+        })
+
+        const conversations = clients.map(client => {
+            const lastMsg = client.smsMessages[0]
+            return {
+                clientId: client.id,
+                clientName: client.user.name || "Client sans nom",
+                clientPhone: client.user.phone || "",
+                lastMessage: lastMsg ? lastMsg.content : "Pas d'historique de messages",
+                lastMessageDate: lastMsg ? lastMsg.createdAt : new Date(0),
+                direction: lastMsg ? lastMsg.direction : null,
+                status: lastMsg ? lastMsg.status : null
+            }
+        })
+
+        // Sort: those with messages first (by date desc), then alphabetical
+        conversations.sort((a, b) => {
+            const dateA = a.lastMessageDate.getTime()
+            const dateB = b.lastMessageDate.getTime()
+            if (dateA !== dateB) return dateB - dateA
+            return a.clientName.localeCompare(b.clientName)
+        })
+
+        return { success: true, conversations }
+    } catch (e) {
+        console.error("Error fetching SMS conversations:", e)
+        return { error: "Impossible de récupérer les conversations." }
+    }
+}

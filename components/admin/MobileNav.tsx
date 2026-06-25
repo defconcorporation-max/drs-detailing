@@ -23,12 +23,14 @@ import {
     BarChart3,
     Target,
     QrCode,
+    MessageSquare,
 } from "lucide-react"
 
 const sidebarItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/schedule", icon: Calendar, label: "Planning" },
     { href: "/admin/clients", icon: Users, label: "Clients & B2B" },
+    { href: "/admin/chat", icon: MessageSquare, label: "Messagerie SMS" },
     { href: "/admin/reports", icon: BarChart3, label: "Analyse & Rapports" },
     { href: "/admin/marketing", icon: Target, label: "Marketing & IA" },
     { href: "/admin/inventory", icon: Package, label: "Inventaire" },

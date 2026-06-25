@@ -20,6 +20,7 @@ import {
     Target,
     QrCode,
     MessageSquarePlus,
+    MessageSquare,
 } from "lucide-react"
 import { BrandMark } from "@/components/brand/BrandMark"
 import { InstallPWA } from "@/components/admin/InstallPWA"
@@ -28,6 +29,7 @@ const sidebarItems = [
     { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/admin/schedule", icon: Calendar, label: "Planning" },
     { href: "/admin/clients", icon: Users, label: "Clients & B2B" },
+    { href: "/admin/chat", icon: MessageSquare, label: "Messagerie SMS" },
     { href: "/admin/warranties", icon: Shield, label: "Garanties" },
     { href: "/admin/reports", icon: BarChart3, label: "Analyse & Rapports" },
     { href: "/admin/marketing", icon: Target, label: "Marketing & IA" },
