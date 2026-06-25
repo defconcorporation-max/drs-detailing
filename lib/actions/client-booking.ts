@@ -45,12 +45,18 @@ export async function getPublicAvailabilitySmart({ startDate, days = 14, service
         : null
     const requiredDurationMin = selectedService?.durationMin || 60
 
+    // Fetch with a 1-day buffer before and after to safely capture timezone overlaps
+    const startDb = new Date(start)
+    startDb.setDate(startDb.getDate() - 1)
+    const endDb = new Date(end)
+    endDb.setDate(endDb.getDate() + 1)
+
     // 1. Fetch Jobs (not cancelled)
     const jobs = await prisma.job.findMany({
         where: {
             scheduledDate: {
-                gte: start,
-                lte: end
+                gte: startDb,
+                lte: endDb
             },
             NOT: { status: "CANCELLED" }
         },
@@ -93,10 +99,10 @@ export async function getPublicAvailabilitySmart({ startDate, days = 14, service
             // Check how many jobs overlap with this slot
             const overlappingJobs = jobs.filter((j: any) => {
                 const jDate = new Date(j.scheduledDate)
-                const jDateStr = jDate.toISOString().split("T")[0]
-                if (jDateStr !== dateStr) return false
+                const tzInfo = getLocalDateAndHourInTZ(jDate, "America/Montreal")
+                if (tzInfo.dateStr !== dateStr) return false
 
-                const jobStart = jDate.getHours() * 60 + jDate.getMinutes()
+                const jobStart = tzInfo.hour * 60 + tzInfo.minute
                 const jobDuration =
                     j.durationMin ||
                     j.services?.reduce(
