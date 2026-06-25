@@ -106,8 +106,8 @@ export async function getPublicAvailabilitySmart({ startDate, days = 14, service
                 return startMin < jobEnd && endMin > jobStart
             })
 
-            // The capacity is either the number of employees in the DB or 2 if none
-            const capacity = Math.max(employees.length, 2)
+            // Maximum 1 reservation at a time per slot
+            const capacity = 1
             const remaining = capacity - overlappingJobs.length
 
             slots.push({
