@@ -1,12 +1,13 @@
 import { cookies } from "next/headers"
 import { getEmployeeWeekSchedule } from "@/lib/actions/employee"
-import { Calendar as CalendarIcon, Clock, MapPin, Store, Truck, GripVertical, CheckCircle2 } from "lucide-react"
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { localDateKey, localHour, localMinute } from "@/lib/date-local"
 import { jobDurationMinutes } from "@/lib/job-metrics"
 import { formatJobPrice } from "@/lib/job-display"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
+import { CalendarIcon, Car, CheckCircle2, MapPin, Store, Truck } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 

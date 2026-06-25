@@ -335,9 +335,6 @@ export function JobPageClient({ job: initialJob }: Props) {
                 onRemove={(url) => handleRemovePhoto("after", url)}
             />
 
-            )}
-
-            {/* Notes du client */}
             {job.notes && (
                 <Card>
                     <CardHeader className="pb-2">

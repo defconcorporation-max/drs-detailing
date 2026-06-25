@@ -267,12 +267,13 @@ export function ScheduleGridClient({ weekMeta, jobs, events = [], selectors, ava
                 )}
             </div>
 
-            <div 
-                className="relative w-full overflow-x-auto scrollbar-thin scrollbar-thumb-sidebar-border/50"
-                onTouchStart={viewMode === "day" ? handleTouchStart : undefined}
-                onTouchMove={viewMode === "day" ? handleTouchMove : undefined}
-                onTouchEnd={viewMode === "day" ? handleTouchEnd : undefined}
-            >
+            {viewType === "grid" && (
+                <div 
+                    className="relative w-full overflow-x-auto scrollbar-thin scrollbar-thumb-sidebar-border/50"
+                    onTouchStart={viewMode === "day" ? handleTouchStart : undefined}
+                    onTouchMove={viewMode === "day" ? handleTouchMove : undefined}
+                    onTouchEnd={viewMode === "day" ? handleTouchEnd : undefined}
+                >
                 {/* Mobile Scroll Hint - only in week mode */}
                 {viewMode === "week" && (
                     <div className="pointer-events-none absolute inset-y-0 right-0 z-30 flex w-8 items-center justify-center bg-gradient-to-l from-background/80 to-transparent md:hidden">
