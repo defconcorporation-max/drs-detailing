@@ -71,7 +71,7 @@ export function PublicBookingForm() {
     const [vehicleColor, setVehicleColor] = useState("")
     const [vehiclePlate, setVehiclePlate] = useState("")
 
-    const [isInShop, setIsInShop] = useState(false) // default to Mobile Detailing
+    const [isInShop, setIsInShop] = useState(true) // default to In-Shop only
     const [clientName, setClientName] = useState("")
     const [clientEmail, setClientEmail] = useState("")
     const [clientPhone, setClientPhone] = useState("")
@@ -516,17 +516,6 @@ export function PublicBookingForm() {
                                         className="w-full h-11 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:ring-1 focus:ring-primary text-foreground"
                                     />
                                 </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Plaque d&apos;immatriculation</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Ex: A12 BCD"
-                                        value={vehiclePlate}
-                                        onChange={(e) => setVehiclePlate(e.target.value)}
-                                        className="w-full h-11 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:ring-1 focus:ring-primary text-foreground"
-                                    />
-                                </div>
                             </div>
                         </div>
                     )}
@@ -537,37 +526,6 @@ export function PublicBookingForm() {
                             <h2 className="font-display text-xl font-bold tracking-wide uppercase text-foreground">
                                 Étape 4 : Vos Coordonnées
                             </h2>
-
-                            {/* Service location toggle */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsInShop(false)}
-                                    className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${
-                                        !isInShop 
-                                            ? "bg-primary/5 border-primary text-primary" 
-                                            : "bg-muted/10 border-border/60 text-muted-foreground hover:bg-muted/20"
-                                    }`}
-                                >
-                                    <MapPin size={20} className="mb-2" />
-                                    <span className="text-sm font-bold">À domicile</span>
-                                    <span className="text-[10px] text-muted-foreground mt-0.5">Un technicien se déplace</span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setIsInShop(true)}
-                                    className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${
-                                        isInShop 
-                                            ? "bg-primary/5 border-primary text-primary" 
-                                            : "bg-muted/10 border-border/60 text-muted-foreground hover:bg-muted/20"
-                                    }`}
-                                >
-                                    <Store size={20} className="mb-2" />
-                                    <span className="text-sm font-bold">À l&apos;atelier</span>
-                                    <span className="text-[10px] text-muted-foreground mt-0.5">Vous amenez le véhicule</span>
-                                </button>
-                            </div>
 
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
@@ -607,20 +565,6 @@ export function PublicBookingForm() {
                                         <span className="text-[10px] text-muted-foreground mt-0.5 block">Nécessaire pour recevoir la confirmation et le suivi par SMS.</span>
                                     </div>
                                 </div>
-
-                                {!isInShop && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Adresse de prestation (Mobile) *</label>
-                                        <input
-                                            type="text"
-                                            placeholder="123 Rue de la Shop, Montréal, QC H0H 0H0"
-                                            value={clientAddress}
-                                            onChange={(e) => setClientAddress(e.target.value)}
-                                            className="w-full h-11 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:ring-1 focus:ring-primary text-foreground"
-                                            required
-                                        />
-                                    </div>
-                                )}
                             </div>
                         </div>
                     )}
@@ -879,7 +823,7 @@ export function PublicBookingForm() {
 
                         {/* Direct contact helpline */}
                         <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
-                            <span>Besoin d&apos;aide ? Appelez-nous directement au <strong className="text-foreground">514-555-0100</strong></span>
+                            <span>Besoin d&apos;aide ? Appelez-nous directement au <strong className="text-foreground">450 602 4805</strong></span>
                         </div>
                     </div>
                 )}
