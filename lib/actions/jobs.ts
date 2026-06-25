@@ -3,7 +3,7 @@
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { buildLinesFromIds, parseServiceExtrasMap, totalsFromLines } from "@/lib/parse-job-extras"
-import { sendSMS } from "@/lib/actions/sms"
+import { sendSMS, sendBookingConfirmationSMS } from "@/lib/actions/sms"
 
 /** Date/heure interprétées en local dans le navigateur (ms UTC) — évite le décalage si le serveur est en autre fuseau. */
 function scheduledDateFromFormData(data: FormData): Date {
@@ -76,7 +76,7 @@ export async function createJob(data: FormData) {
 
         const scheduledDate = scheduledDateFromFormData(data)
 
-        await prisma.job.create({
+        const createdJob = await prisma.job.create({
             data: {
                 clientId,
                 vehicleId: vehicleId || null,
@@ -98,6 +98,10 @@ export async function createJob(data: FormData) {
                     : {}),
             },
         })
+
+        if (jobStatus === "CONFIRMED") {
+            await sendBookingConfirmationSMS(createdJob.id).catch(console.error)
+        }
     } catch (e) {
         console.error(e)
         return { error: "Erreur création job" }
@@ -178,6 +182,11 @@ export async function updateJob(id: string, data: FormData) {
         const { totalPrice: catalogPrice } = totalsFromLines(lines)
         const finalPrice = (lines.length ? catalogPrice : 0) + (customServicePrice || 0)
 
+        const oldJob = await prisma.job.findUnique({
+            where: { id },
+            select: { status: true }
+        })
+
         await prisma.job.update({
             where: { id },
             data: {
@@ -202,6 +211,11 @@ export async function updateJob(id: string, data: FormData) {
                 },
             },
         })
+
+        const newStatus = status || "PENDING"
+        if (newStatus === "CONFIRMED" && oldJob?.status !== "CONFIRMED") {
+            await sendBookingConfirmationSMS(id).catch(console.error)
+        }
     } catch (e) {
         return { error: "Erreur mise à jour job" }
     }
@@ -284,12 +298,7 @@ export async function updateJobStatus(id: string, status: string) {
         // Automation: SMS on status change
         if (job.client?.user?.phone) {
             if (status === "CONFIRMED") {
-                await sendSMS(
-                    job.clientId,
-                    job.client.user.phone,
-                    `DRS Detailing: Votre rendez-vous est maintenant CONFIRMÉ pour le ${job.scheduledDate.toLocaleDateString('fr-CA')}. Merci de votre confiance !`,
-                    job.id
-                ).catch(console.error)
+                await sendBookingConfirmationSMS(id).catch(console.error)
             } else if (status === "COMPLETED") {
                 await sendSMS(
                     job.clientId,
