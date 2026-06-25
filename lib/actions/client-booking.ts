@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { getLocalDateAndHourInTZ, parseLocalDateInTZ } from "@/lib/date-local"
 
 export type TimeSlot = {
     time: string
@@ -146,10 +147,8 @@ export async function requestBooking({ token, dateStr, timeStr, serviceId, vehic
 
         if (!client) return { error: "Client introuvable" }
 
-        // Construct Date object
-        const [y, m, d] = dateStr.split('-').map(Number)
-        const [h, min] = timeStr.split(':').map(Number)
-        const scheduledDate = new Date(y, m - 1, d, h, min)
+        // Construct Date object in Montreal local timezone
+        const scheduledDate = parseLocalDateInTZ(dateStr, timeStr)
 
         // Find Service
         const service = await prisma.service.findUnique({ where: { id: serviceId } })

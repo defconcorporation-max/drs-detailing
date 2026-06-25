@@ -3,6 +3,7 @@
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { sendSMS } from "@/lib/actions/sms"
+import { parseLocalDateInTZ } from "@/lib/date-local"
 import { getPublicAvailabilitySmart } from "./client-booking"
 
 export async function getPublicServices() {
@@ -147,11 +148,8 @@ export async function createPublicBooking(data: PublicBookingInput) {
         const durationMin = service.durationMin + selectedExtras.reduce((acc, ext) => acc + ext.durationExtraMin, 0)
         const totalPrice = service.basePrice + selectedExtras.reduce((acc, ext) => acc + ext.priceExtra, 0)
 
-        // Parse scheduled Date
-        const [y, m, d] = dateStr.split('-').map(Number)
-        const [h, min] = timeStr.split(':').map(Number)
-        // Parse conceptual local time
-        const scheduledDate = new Date(y, m - 1, d, h, min)
+        // Parse scheduled Date in Montreal local timezone
+        const scheduledDate = parseLocalDateInTZ(dateStr, timeStr)
 
         // 5. Create Job
         const job = await prisma.job.create({
