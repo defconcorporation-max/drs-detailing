@@ -44,18 +44,7 @@ export async function getPublicAvailabilitySmart({ startDate, days = 14, service
         : null
     const requiredDurationMin = selectedService?.durationMin || 60
 
-    // 1. Fetch "Active" Availabilities (isLocked: true means published)
-    const availabilities = await prisma.availability.findMany({
-        where: {
-            isLocked: true,
-            date: {
-                gte: start,
-                lte: end
-            }
-        }
-    })
-
-    // 2. Fetch Jobs (not cancelled)
+    // 1. Fetch Jobs (not cancelled)
     const jobs = await prisma.job.findMany({
         where: {
             scheduledDate: {
@@ -70,16 +59,14 @@ export async function getPublicAvailabilitySmart({ startDate, days = 14, service
         }
     })
 
-    const employees = await prisma.employeeProfile.findMany({
-        include: { user: true }
-    })
+    const employees = await prisma.employeeProfile.findMany()
 
     const result: DayAvailability[] = []
     
     // Exact 5 slots requested: 8am, 10am, 12pm (midi), 2pm (14h00), 4pm (16h00)
     const TARGET_SLOTS = ["08:00", "10:00", "12:00", "14:00", "16:00"]
 
-    // 3. Calculate per day
+    // 2. Calculate per day
     for (let i = 0; i < days; i++) {
         const currentD = new Date(start)
         currentD.setDate(currentD.getDate() + i)
@@ -97,98 +84,37 @@ export async function getPublicAvailabilitySmart({ startDate, days = 14, service
 
         const slots: TimeSlot[] = []
 
-        // Check if there are any locked availabilities for anyone on this specific day
-        const hasLockedAvailForDay = availabilities.some(a => {
-            if (!a.date) return false
-            return a.date.toISOString().split("T")[0] === dateStr
-        })
-
         for (const timeStr of TARGET_SLOTS) {
             const [h, min] = timeStr.split(':').map(Number)
             const startMin = h * 60 + min
             const endMin = startMin + requiredDurationMin
 
-            if (employees.length === 0) {
-                // Fallback when no employees are registered in DB
-                const overlappingJobs = jobs.filter((j: any) => {
-                    const jDate = new Date(j.scheduledDate)
-                    const jDateStr = jDate.toISOString().split("T")[0]
-                    if (jDateStr !== dateStr) return false
+            // Check how many jobs overlap with this slot
+            const overlappingJobs = jobs.filter((j: any) => {
+                const jDate = new Date(j.scheduledDate)
+                const jDateStr = jDate.toISOString().split("T")[0]
+                if (jDateStr !== dateStr) return false
 
-                    const jobStart = jDate.getHours() * 60 + jDate.getMinutes()
-                    const jobDuration =
-                        j.durationMin ||
-                        j.services?.reduce(
-                            (acc: number, s: any) => acc + (s.service.durationMin || 60),
-                            0
-                        ) || 60
-                    const jobEnd = jobStart + jobDuration
-                    return startMin < jobEnd && endMin > jobStart
-                })
-
-                const remaining = 2 - overlappingJobs.length
-                slots.push({ time: timeStr, available: remaining > 0, remaining: Math.max(0, remaining) })
-                continue
-            }
-
-            // Determine which employees are working this slot
-            let workingEmployees = []
-
-            if (hasLockedAvailForDay) {
-                // Use locked availabilities
-                workingEmployees = employees.filter((emp) => {
-                    const daySlots = availabilities.filter((a) => {
-                        if (!a.date) return false
-                        const aDateStr = a.date.toISOString().split("T")[0]
-                        return a.employeeId === emp.id && aDateStr === dateStr
-                    })
-                    return daySlots.some((slot) => {
-                        const [sH, sM] = slot.startTime.split(":").map(Number)
-                        const [eH, eM] = slot.endTime.split(":").map(Number)
-                        const slotStartMin = sH * 60 + sM
-                        const slotEndMin = eH * 60 + eM
-                        return startMin >= slotStartMin && endMin <= slotEndMin
-                    })
-                })
-            } else {
-                // Fallback: assume ALL employees are working between 08:00 and 18:00
-                workingEmployees = employees
-            }
-
-            // If no employees are working, slot is unavailable
-            if (workingEmployees.length === 0) {
-                slots.push({ time: timeStr, available: false, remaining: 0 })
-                continue
-            }
-
-            const availableEmployees = workingEmployees.filter((emp) => {
-                const empJobs = jobs.filter((j: any) => {
-                    const jDate = new Date(j.scheduledDate)
-                    const jDateStr = jDate.toISOString().split("T")[0]
-                    if (jDateStr !== dateStr) return false
-
-                    const assignedInTeam = j.employees?.some((e: any) => e.id === emp.id)
-                    const assignedLegacy = j.employeeId === emp.id
-                    return assignedInTeam || assignedLegacy
-                })
-
-                return !empJobs.some((job: any) => {
-                    const jDate = new Date(job.scheduledDate)
-                    const jobStart = jDate.getHours() * 60 + jDate.getMinutes()
-                    const jobDuration =
-                        job.durationMin ||
-                        job.services?.reduce(
-                            (acc: number, s: any) => acc + (s.service.durationMin || 60),
-                            0
-                        ) || 60
-                    const jobEnd = jobStart + jobDuration
-                    // overlap
-                    return startMin < jobEnd && endMin > jobStart
-                })
+                const jobStart = jDate.getHours() * 60 + jDate.getMinutes()
+                const jobDuration =
+                    j.durationMin ||
+                    j.services?.reduce(
+                        (acc: number, s: any) => acc + (s.service.durationMin || 60),
+                        0
+                    ) || 60
+                const jobEnd = jobStart + jobDuration
+                return startMin < jobEnd && endMin > jobStart
             })
 
-            const remaining = availableEmployees.length
-            slots.push({ time: timeStr, available: remaining > 0, remaining })
+            // The capacity is either the number of employees in the DB or 2 if none
+            const capacity = Math.max(employees.length, 2)
+            const remaining = capacity - overlappingJobs.length
+
+            slots.push({
+                time: timeStr,
+                available: remaining > 0,
+                remaining: Math.max(0, remaining)
+            })
         }
 
         result.push({
