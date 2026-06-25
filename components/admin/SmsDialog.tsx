@@ -12,9 +12,10 @@ interface SmsDialogProps {
     clientPhone?: string | null
     clientName?: string | null
     jobId?: string
+    compact?: boolean
 }
 
-export function SmsDialog({ clientId, clientPhone, clientName, jobId }: SmsDialogProps) {
+export function SmsDialog({ clientId, clientPhone, clientName, jobId, compact }: SmsDialogProps) {
     const [open, setOpen] = useState(false)
     const [content, setContent] = useState("")
     const [loading, setLoading] = useState(false)
@@ -48,10 +49,16 @@ export function SmsDialog({ clientId, clientPhone, clientName, jobId }: SmsDialo
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 text-primary border-primary/20 hover:bg-primary/10">
-                    <MessageSquare size={16} />
-                    <span className="hidden sm:inline">Envoyer un SMS</span>
-                </Button>
+                {compact ? (
+                    <Button variant="outline" size="icon" className="h-8 w-8 text-primary border-primary/20 hover:bg-primary/10" title="Envoyer un SMS">
+                        <MessageSquare size={14} />
+                    </Button>
+                ) : (
+                    <Button variant="outline" size="sm" className="gap-2 text-primary border-primary/20 hover:bg-primary/10">
+                        <MessageSquare size={16} />
+                        <span className="hidden sm:inline">Envoyer un SMS</span>
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>

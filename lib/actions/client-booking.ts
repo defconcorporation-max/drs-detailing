@@ -3,6 +3,7 @@
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { getLocalDateAndHourInTZ, parseLocalDateInTZ } from "@/lib/date-local"
+import { sendSMS } from "@/lib/actions/sms"
 
 export type TimeSlot = {
     time: string
@@ -198,13 +199,33 @@ export async function requestBooking({ token, dateStr, timeStr, serviceId, vehic
 
 export async function confirmBooking(jobId: string) {
     try {
-        await prisma.job.update({
+        const job = await prisma.job.update({
             where: { id: jobId },
-            data: { status: "CONFIRMED" }
+            data: { status: "CONFIRMED" },
+            include: {
+                client: { include: { user: true } }
+            }
         })
+
+        if (job.client?.user?.phone) {
+            const tzInfo = getLocalDateAndHourInTZ(new Date(job.scheduledDate), "America/Montreal")
+            const timeStr = `${tzInfo.hour.toString().padStart(2, "0")}:${tzInfo.minute.toString().padStart(2, "0")}`
+            
+            // Format date nicely (e.g. YYYY-MM-DD)
+            const dateStr = new Date(job.scheduledDate).toLocaleDateString('fr-CA')
+            
+            await sendSMS(
+                job.clientId,
+                job.client.user.phone,
+                `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. Votre réservation pour le ${dateStr} à ${timeStr} est confirmée ! Merci de votre confiance.`,
+                job.id
+            ).catch(err => console.error("Error sending booking confirmation SMS:", err))
+        }
+
         revalidatePath('/admin')
         return { success: true }
     } catch (e) {
+        console.error("Error confirming booking:", e)
         return { error: "Erreur confirmation" }
     }
 }

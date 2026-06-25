@@ -2,6 +2,9 @@
 
 import prisma from "@/lib/db"
 import { sendClientReminderEmail } from "@/lib/email/send-client-reminder"
+import { sendSMS } from "@/lib/actions/sms"
+import { getLocalDateAndHourInTZ } from "@/lib/date-local"
+import { differenceInDays } from "date-fns"
 
 const TAG_J1 = "[REMINDER_J1_SENT]"
 const TAG_H2 = "[REMINDER_H2_SENT]"
@@ -43,9 +46,136 @@ export async function sendReminderNotification(
 
 export async function runReminderDispatch() {
     const now = new Date()
+    const montrealNow = getLocalDateAndHourInTZ(now, "America/Montreal")
+    const failures: string[] = []
+
+    // 1. Same-Day at 7 AM SMS automation
+    const is7AM = montrealNow.hour === 7
+    let sentSameDay = 0
+    if (is7AM) {
+        // Query jobs for today
+        const startOfTodayUtc = new Date(now)
+        startOfTodayUtc.setHours(0, 0, 0, 0)
+        const endOfTodayUtc = new Date(now)
+        endOfTodayUtc.setHours(23, 59, 59, 999)
+
+        const todayJobs = await prisma.job.findMany({
+            where: {
+                scheduledDate: { gte: startOfTodayUtc, lte: endOfTodayUtc },
+                status: { in: ["CONFIRMED", "SCHEDULED"] }
+            },
+            include: {
+                client: { include: { user: true } }
+            }
+        })
+
+        for (const job of todayJobs) {
+            const jDate = new Date(job.scheduledDate)
+            const tzInfo = getLocalDateAndHourInTZ(jDate, "America/Montreal")
+            
+            if (tzInfo.dateStr === montrealNow.dateStr && !hasReminderTag(job.notes, "[REMINDER_M7_SENT]")) {
+                try {
+                    if (job.client?.user?.phone) {
+                        const timeStr = `${tzInfo.hour.toString().padStart(2, "0")}:${tzInfo.minute.toString().padStart(2, "0")}`
+                        await sendSMS(
+                            job.clientId,
+                            job.client.user.phone,
+                            `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. C'est le grand jour ! Rappel de votre rendez-vous aujourd'hui à ${timeStr}. À tout de suite !`,
+                            job.id
+                        )
+                    }
+
+                    const newNotes = appendReminderTag(job.notes, "[REMINDER_M7_SENT]")
+                    await prisma.job.update({
+                        where: { id: job.id },
+                        data: { notes: newNotes }
+                    })
+                    sentSameDay += 1
+                } catch (err) {
+                    failures.push(`SameDay:${job.id}:${String(err)}`)
+                }
+            }
+        }
+    }
+
+    // 2. Retention automation at 9 AM local Montreal time
+    const is9AM = montrealNow.hour === 9
+    let sentRetention = 0
+    if (is9AM) {
+        const clients = await prisma.clientProfile.findMany({
+            include: {
+                user: true,
+                jobs: {
+                    where: { status: "COMPLETED" },
+                    orderBy: { scheduledDate: "desc" },
+                    take: 1
+                }
+            }
+        })
+
+        for (const client of clients) {
+            const lastJob = client.jobs[0]
+            if (!lastJob || !client.user.phone) continue
+
+            const daysDiff = differenceInDays(now, new Date(lastJob.scheduledDate))
+
+            // 1 Month Retention (exactly 30 days)
+            if (daysDiff === 30) {
+                try {
+                    const sentCount = await prisma.smsMessage.count({
+                        where: {
+                            clientId: client.id,
+                            direction: "OUTBOUND",
+                            content: { contains: "Déjà 1 mois" },
+                            createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
+                        }
+                    })
+
+                    if (sentCount === 0) {
+                        await sendSMS(
+                            client.id,
+                            client.user.phone,
+                            `Bonjour ${client.user.name || "Client"}, c'est DRS Detailing. Déjà 1 mois depuis votre dernier nettoyage ! Pensez à planifier votre prochain entretien d'esthétique pour garder votre véhicule étincelant. Réservez ici: https://drs-detailing.vercel.app/book`,
+                            lastJob.id
+                        )
+                        sentRetention += 1
+                    }
+                } catch (err) {
+                    failures.push(`Retention1M:${client.id}:${String(err)}`)
+                }
+            }
+
+            // 2 Months Retention (exactly 60 days)
+            if (daysDiff === 60) {
+                try {
+                    const sentCount = await prisma.smsMessage.count({
+                        where: {
+                            clientId: client.id,
+                            direction: "OUTBOUND",
+                            content: { contains: "Ça fait 2 mois" },
+                            createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
+                        }
+                    })
+
+                    if (sentCount === 0) {
+                        await sendSMS(
+                            client.id,
+                            client.user.phone,
+                            `Bonjour ${client.user.name || "Client"}, c'est DRS Detailing. Ça fait 2 mois que nous n'avons pas vu votre véhicule ! Profitez de 10% de rabais sur votre prochain nettoyage en réservant cette semaine avec le code DRS60. Réservez ici: https://drs-detailing.vercel.app/book`,
+                            lastJob.id
+                        )
+                        sentRetention += 1
+                    }
+                } catch (err) {
+                    failures.push(`Retention2M:${client.id}:${String(err)}`)
+                }
+            }
+        }
+    }
+
+    // 3. J-1 (24h) and H-2 (2h) reminders
     const horizon = new Date(now.getTime() + 48 * 60 * 60 * 1000)
 
-    // Jobs that can still be reminded.
     const jobs = await prisma.job.findMany({
         where: {
             scheduledDate: { gte: now, lte: horizon },
@@ -58,14 +188,11 @@ export async function runReminderDispatch() {
 
     let sentJ1 = 0
     let sentH2 = 0
-    const failures: string[] = []
 
     for (const job of jobs) {
         const deltaMin = Math.floor((new Date(job.scheduledDate).getTime() - now.getTime()) / 60000)
 
-        // J-1 window: 23h to 25h
         const shouldSendJ1 = deltaMin >= 1380 && deltaMin <= 1500 && !hasReminderTag(job.notes, TAG_J1)
-        // H-2 window: 1h50 to 2h10
         const shouldSendH2 = deltaMin >= 110 && deltaMin <= 130 && !hasReminderTag(job.notes, TAG_H2)
 
         if (!shouldSendJ1 && !shouldSendH2) continue
@@ -73,10 +200,32 @@ export async function runReminderDispatch() {
         try {
             if (shouldSendJ1) {
                 await sendReminderNotification(job, "J1")
+                
+                // Also send SMS if phone exists
+                if (job.client?.user?.phone) {
+                    const tzInfo = getLocalDateAndHourInTZ(new Date(job.scheduledDate), "America/Montreal")
+                    const timeStr = `${tzInfo.hour.toString().padStart(2, "0")}:${tzInfo.minute.toString().padStart(2, "0")}`
+                    await sendSMS(
+                        job.clientId,
+                        job.client.user.phone,
+                        `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. Rappel de votre rendez-vous de lavage auto demain à ${timeStr}. À demain !`,
+                        job.id
+                    )
+                }
                 sentJ1 += 1
             }
             if (shouldSendH2) {
                 await sendReminderNotification(job, "H2")
+                
+                // Also send SMS if phone exists
+                if (job.client?.user?.phone) {
+                    await sendSMS(
+                        job.clientId,
+                        job.client.user.phone,
+                        `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. Rappel de votre rendez-vous d'esthétique auto aujourd'hui dans 2 heures. À tout de suite !`,
+                        job.id
+                    )
+                }
                 sentH2 += 1
             }
 
@@ -99,6 +248,8 @@ export async function runReminderDispatch() {
         scanned: jobs.length,
         sentJ1,
         sentH2,
+        sentSameDay,
+        sentRetention,
         failures,
     }
 }

@@ -4,9 +4,10 @@ import { RetentionBuckets, RetentionClient } from "@/lib/actions/marketing"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { CalendarClock, Phone, Mail, Car } from "lucide-react"
+import { CalendarClock, Phone, Mail, Car, MessageSquare } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { SmsDialog } from "./SmsDialog"
 
 export function RetentionTable({ data }: { data: RetentionBuckets }) {
     const buckets = [
@@ -101,18 +102,29 @@ export function RetentionTable({ data }: { data: RetentionBuckets }) {
                                                     <td className="py-3 px-4">
                                                         <div className="flex items-center justify-center gap-2">
                                                             {c.phone ? (
-                                                                <a href={`tel:${c.phone}`} className="p-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors" title="Appeler">
-                                                                    <Phone size={14} />
-                                                                </a>
+                                                                <>
+                                                                    <a href={`tel:${c.phone}`} className="p-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors flex items-center justify-center h-8 w-8" title="Appeler">
+                                                                        <Phone size={14} />
+                                                                    </a>
+                                                                    <SmsDialog 
+                                                                        clientId={c.id} 
+                                                                        clientPhone={c.phone} 
+                                                                        clientName={c.name} 
+                                                                        compact
+                                                                    />
+                                                                </>
                                                             ) : (
-                                                                <span className="p-2 opacity-30"><Phone size={14} /></span>
+                                                                <>
+                                                                    <span className="p-2 opacity-30 flex items-center justify-center h-8 w-8"><Phone size={14} /></span>
+                                                                    <span className="p-2 opacity-30 flex items-center justify-center h-8 w-8"><MessageSquare size={14} /></span>
+                                                                </>
                                                             )}
                                                             {c.email ? (
-                                                                <a href={`mailto:${c.email}`} className="p-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors" title="Email">
+                                                                <a href={`mailto:${c.email}`} className="p-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors flex items-center justify-center h-8 w-8" title="Email">
                                                                     <Mail size={14} />
                                                                 </a>
                                                             ) : (
-                                                                <span className="p-2 opacity-30"><Mail size={14} /></span>
+                                                                <span className="p-2 opacity-30 flex items-center justify-center h-8 w-8"><Mail size={14} /></span>
                                                             )}
                                                         </div>
                                                     </td>
