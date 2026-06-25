@@ -207,17 +207,25 @@ export async function confirmBooking(jobId: string) {
             }
         })
 
-        if (job.client?.user?.phone) {
+        const settings = await prisma.systemSetting.findUnique({ where: { id: "GLOBAL" } })
+
+        if (settings?.smsConfirmEnabled && job.client?.user?.phone) {
             const tzInfo = getLocalDateAndHourInTZ(new Date(job.scheduledDate), "America/Montreal")
             const timeStr = `${tzInfo.hour.toString().padStart(2, "0")}:${tzInfo.minute.toString().padStart(2, "0")}`
             
             // Format date nicely (e.g. YYYY-MM-DD)
             const dateStr = new Date(job.scheduledDate).toLocaleDateString('fr-CA')
             
+            const name = job.client.user.name || "Client"
+            const body = settings.smsConfirmTemplate
+                .replace(/{name}/g, name)
+                .replace(/{date}/g, dateStr)
+                .replace(/{time}/g, timeStr)
+
             await sendSMS(
                 job.clientId,
                 job.client.user.phone,
-                `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. Votre réservation pour le ${dateStr} à ${timeStr} est confirmée ! Merci de votre confiance.`,
+                body,
                 job.id
             ).catch(err => console.error("Error sending booking confirmation SMS:", err))
         }

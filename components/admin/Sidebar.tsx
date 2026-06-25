@@ -21,6 +21,7 @@ import {
     QrCode,
     MessageSquarePlus,
     MessageSquare,
+    Zap,
 } from "lucide-react"
 import { BrandMark } from "@/components/brand/BrandMark"
 import { InstallPWA } from "@/components/admin/InstallPWA"
@@ -33,6 +34,7 @@ const sidebarItems = [
     { href: "/admin/warranties", icon: Shield, label: "Garanties" },
     { href: "/admin/reports", icon: BarChart3, label: "Analyse & Rapports" },
     { href: "/admin/marketing", icon: Target, label: "Marketing & IA" },
+    { href: "/admin/automations", icon: Zap, label: "Automatisations" },
     { href: "/admin/inventory", icon: Package, label: "Inventaire" },
     { href: "/admin/accounting", icon: Wallet, label: "Comptabilité" },
     { href: "/admin/feedbacks", icon: MessageSquarePlus, label: "Beta Feedbacks" },
@@ -46,7 +48,7 @@ export function AdminSidebar({ role = "admin" }: { role?: string }) {
 
     const filteredItems = sidebarItems.filter(item => {
         if (role === "dispatcher") {
-            const restricted = ["/admin/reports", "/admin/accounting", "/admin/settings", "/admin/marketing", "/admin/feedbacks"]
+            const restricted = ["/admin/reports", "/admin/accounting", "/admin/settings", "/admin/marketing", "/admin/feedbacks", "/admin/automations"]
             if (restricted.some(r => item.href.startsWith(r))) return false
         }
         return true

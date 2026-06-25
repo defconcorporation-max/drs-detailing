@@ -24,6 +24,7 @@ import {
     Target,
     QrCode,
     MessageSquare,
+    Zap,
 } from "lucide-react"
 
 const sidebarItems = [
@@ -33,6 +34,7 @@ const sidebarItems = [
     { href: "/admin/chat", icon: MessageSquare, label: "Messagerie SMS" },
     { href: "/admin/reports", icon: BarChart3, label: "Analyse & Rapports" },
     { href: "/admin/marketing", icon: Target, label: "Marketing & IA" },
+    { href: "/admin/automations", icon: Zap, label: "Automatisations" },
     { href: "/admin/inventory", icon: Package, label: "Inventaire" },
     { href: "/admin/accounting", icon: Wallet, label: "Comptabilité" },
     { href: "/kiosk/check-in", icon: QrCode, label: "Mode Borne Kiosk" },
@@ -45,7 +47,7 @@ export function MobileAdminNav({ role = "admin" }: { role?: string }) {
 
     const filteredItems = sidebarItems.filter(item => {
         if (role === "dispatcher") {
-            const restricted = ["/admin/reports", "/admin/accounting", "/admin/settings", "/admin/marketing", "/admin/feedbacks"]
+            const restricted = ["/admin/reports", "/admin/accounting", "/admin/settings", "/admin/marketing", "/admin/feedbacks", "/admin/automations"]
             if (restricted.some(r => item.href.startsWith(r))) return false
         }
         return true

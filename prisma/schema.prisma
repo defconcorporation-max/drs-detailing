@@ -403,6 +403,26 @@ model SystemSetting {
   averageVehicleCost Float    @default(7.0)
   cityColors         String?  // JSON: {"Laval": "#3b82f6", "Montréal": "#f59e0b", ...}
   serviceZones       String?  // JSON GeoJSON FeatureCollection
+  
+  // SMS Automations Settings
+  smsConfirmEnabled      Boolean  @default(true)
+  smsConfirmTemplate     String   @default("Bonjour {name}, c'est DRS Detailing. Votre réservation pour le {date} à {time} est confirmée ! Merci de votre confiance.")
+  
+  smsJ1Enabled           Boolean  @default(true)
+  smsJ1Template          String   @default("Bonjour {name}, c'est DRS Detailing. Rappel de votre rendez-vous de lavage auto demain à {time}. À demain !")
+  
+  smsH2Enabled           Boolean  @default(true)
+  smsH2Template          String   @default("Bonjour {name}, c'est DRS Detailing. Rappel de votre rendez-vous d'esthétique auto aujourd'hui dans 2 heures. À tout de suite !")
+  
+  smsM7Enabled           Boolean  @default(true)
+  smsM7Template          String   @default("Bonjour {name}, c'est DRS Detailing. C'est le grand jour ! Rappel de votre rendez-vous aujourd'hui à {time}. À tout de suite !")
+  
+  smsRetention30Enabled  Boolean  @default(true)
+  smsRetention30Template String   @default("Bonjour {name}, c'est DRS Detailing. Déjà 1 mois depuis votre dernier nettoyage ! Pensez à planifier votre prochain entretien d'esthétique pour garder votre véhicule étincelant. Réservez ici: https://drs-detailing.vercel.app/book")
+  
+  smsRetention60Enabled  Boolean  @default(true)
+  smsRetention60Template String   @default("Bonjour {name}, c'est DRS Detailing. Ça fait 2 mois que nous n'avons pas vu votre véhicule ! Profitez de 10% de rabais sur votre prochain nettoyage en réservant cette semaine avec le code DRS60. Réservez ici: https://drs-detailing.vercel.app/book")
+
   updatedAt          DateTime @updatedAt
 }
 

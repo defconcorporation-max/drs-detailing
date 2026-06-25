@@ -125,6 +125,7 @@ export default async function SettingsPage() {
                     </Card>
                 </TabsContent>
 
+
                 <TabsContent value="security" className="mt-0">
                     <Card className="max-w-md">
                         <CardHeader>

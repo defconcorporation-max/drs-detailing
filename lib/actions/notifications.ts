@@ -49,10 +49,12 @@ export async function runReminderDispatch() {
     const montrealNow = getLocalDateAndHourInTZ(now, "America/Montreal")
     const failures: string[] = []
 
+    const settings = await prisma.systemSetting.findUnique({ where: { id: "GLOBAL" } })
+
     // 1. Same-Day at 7 AM SMS automation
     const is7AM = montrealNow.hour === 7
     let sentSameDay = 0
-    if (is7AM) {
+    if (is7AM && settings?.smsM7Enabled) {
         // Query jobs for today
         const startOfTodayUtc = new Date(now)
         startOfTodayUtc.setHours(0, 0, 0, 0)
@@ -77,10 +79,17 @@ export async function runReminderDispatch() {
                 try {
                     if (job.client?.user?.phone) {
                         const timeStr = `${tzInfo.hour.toString().padStart(2, "0")}:${tzInfo.minute.toString().padStart(2, "0")}`
+                        const name = job.client.user.name || "Client"
+                        
+                        const body = settings.smsM7Template
+                            .replace(/{name}/g, name)
+                            .replace(/{time}/g, timeStr)
+                            .replace(/{date}/g, tzInfo.dateStr)
+
                         await sendSMS(
                             job.clientId,
                             job.client.user.phone,
-                            `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. C'est le grand jour ! Rappel de votre rendez-vous aujourd'hui à ${timeStr}. À tout de suite !`,
+                            body,
                             job.id
                         )
                     }
@@ -120,22 +129,26 @@ export async function runReminderDispatch() {
             const daysDiff = differenceInDays(now, new Date(lastJob.scheduledDate))
 
             // 1 Month Retention (exactly 30 days)
-            if (daysDiff === 30) {
+            if (daysDiff === 30 && settings?.smsRetention30Enabled) {
                 try {
                     const sentCount = await prisma.smsMessage.count({
                         where: {
                             clientId: client.id,
                             direction: "OUTBOUND",
-                            content: { contains: "Déjà 1 mois" },
+                            content: { contains: "1 mois" },
                             createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
                         }
                     })
 
                     if (sentCount === 0) {
+                        const name = client.user.name || "Client"
+                        const body = settings.smsRetention30Template
+                            .replace(/{name}/g, name)
+
                         await sendSMS(
                             client.id,
                             client.user.phone,
-                            `Bonjour ${client.user.name || "Client"}, c'est DRS Detailing. Déjà 1 mois depuis votre dernier nettoyage ! Pensez à planifier votre prochain entretien d'esthétique pour garder votre véhicule étincelant. Réservez ici: https://drs-detailing.vercel.app/book`,
+                            body,
                             lastJob.id
                         )
                         sentRetention += 1
@@ -146,22 +159,26 @@ export async function runReminderDispatch() {
             }
 
             // 2 Months Retention (exactly 60 days)
-            if (daysDiff === 60) {
+            if (daysDiff === 60 && settings?.smsRetention60Enabled) {
                 try {
                     const sentCount = await prisma.smsMessage.count({
                         where: {
                             clientId: client.id,
                             direction: "OUTBOUND",
-                            content: { contains: "Ça fait 2 mois" },
+                            content: { contains: "2 mois" },
                             createdAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) }
                         }
                     })
 
                     if (sentCount === 0) {
+                        const name = client.user.name || "Client"
+                        const body = settings.smsRetention60Template
+                            .replace(/{name}/g, name)
+
                         await sendSMS(
                             client.id,
                             client.user.phone,
-                            `Bonjour ${client.user.name || "Client"}, c'est DRS Detailing. Ça fait 2 mois que nous n'avons pas vu votre véhicule ! Profitez de 10% de rabais sur votre prochain nettoyage en réservant cette semaine avec le code DRS60. Réservez ici: https://drs-detailing.vercel.app/book`,
+                            body,
                             lastJob.id
                         )
                         sentRetention += 1
@@ -201,14 +218,22 @@ export async function runReminderDispatch() {
             if (shouldSendJ1) {
                 await sendReminderNotification(job, "J1")
                 
-                // Also send SMS if phone exists
-                if (job.client?.user?.phone) {
+                // Also send SMS if enabled and phone exists
+                if (settings?.smsJ1Enabled && job.client?.user?.phone) {
                     const tzInfo = getLocalDateAndHourInTZ(new Date(job.scheduledDate), "America/Montreal")
                     const timeStr = `${tzInfo.hour.toString().padStart(2, "0")}:${tzInfo.minute.toString().padStart(2, "0")}`
+                    const dateStr = new Date(job.scheduledDate).toLocaleDateString('fr-CA')
+                    const name = job.client.user.name || "Client"
+                    
+                    const body = settings.smsJ1Template
+                        .replace(/{name}/g, name)
+                        .replace(/{time}/g, timeStr)
+                        .replace(/{date}/g, dateStr)
+
                     await sendSMS(
                         job.clientId,
                         job.client.user.phone,
-                        `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. Rappel de votre rendez-vous de lavage auto demain à ${timeStr}. À demain !`,
+                        body,
                         job.id
                     )
                 }
@@ -217,12 +242,22 @@ export async function runReminderDispatch() {
             if (shouldSendH2) {
                 await sendReminderNotification(job, "H2")
                 
-                // Also send SMS if phone exists
-                if (job.client?.user?.phone) {
+                // Also send SMS if enabled and phone exists
+                if (settings?.smsH2Enabled && job.client?.user?.phone) {
+                    const tzInfo = getLocalDateAndHourInTZ(new Date(job.scheduledDate), "America/Montreal")
+                    const timeStr = `${tzInfo.hour.toString().padStart(2, "0")}:${tzInfo.minute.toString().padStart(2, "0")}`
+                    const dateStr = new Date(job.scheduledDate).toLocaleDateString('fr-CA')
+                    const name = job.client.user.name || "Client"
+                    
+                    const body = settings.smsH2Template
+                        .replace(/{name}/g, name)
+                        .replace(/{time}/g, timeStr)
+                        .replace(/{date}/g, dateStr)
+
                     await sendSMS(
                         job.clientId,
                         job.client.user.phone,
-                        `Bonjour ${job.client.user.name || "Client"}, c'est DRS Detailing. Rappel de votre rendez-vous d'esthétique auto aujourd'hui dans 2 heures. À tout de suite !`,
+                        body,
                         job.id
                     )
                 }

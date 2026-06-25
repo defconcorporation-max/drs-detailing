@@ -82,3 +82,35 @@ export async function getServiceZones(): Promise<any | null> {
         return null
     }
 }
+
+export async function updateAutomationSettings(data: {
+    smsConfirmEnabled: boolean
+    smsConfirmTemplate: string
+    smsJ1Enabled: boolean
+    smsJ1Template: string
+    smsH2Enabled: boolean
+    smsH2Template: string
+    smsM7Enabled: boolean
+    smsM7Template: string
+    smsRetention30Enabled: boolean
+    smsRetention30Template: string
+    smsRetention60Enabled: boolean
+    smsRetention60Template: string
+}) {
+    try {
+        await prisma.systemSetting.upsert({
+            where: { id: "GLOBAL" },
+            update: data,
+            create: {
+                id: "GLOBAL",
+                averageVehicleCost: 7.0,
+                ...data
+            }
+        })
+        revalidatePath('/admin/automations')
+        return { success: true }
+    } catch (e) {
+        console.error("updateAutomationSettings error:", e)
+        return { error: "Erreur lors de la sauvegarde des automatisations" }
+    }
+}
